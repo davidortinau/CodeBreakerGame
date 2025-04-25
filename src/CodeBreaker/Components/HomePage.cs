@@ -18,6 +18,12 @@ class HomePageState
     public int MaxCodeLength { get; } = 4;
     public bool GameOver { get; set; }
     public bool GameWon { get; set; }
+    
+    // Animation properties
+    public bool IsAnimatingResults { get; set; } = false;
+    public int AnimatingResultsIndex { get; set; } = -1;
+    public int AnimatingGuessIndex { get; set; } = -1;
+    public bool IsRevealComplete { get; set; } = false;
     public List<Color> AvailableColors { get; } = new()
     {
         // Expanded Atari 2600 palette colors
@@ -93,18 +99,20 @@ partial class HomePage : Component<HomePageState>
         .VCenter()
         .RowSpacing(12)
         .Margin(15);
-    }    private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
+    }
+    private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
     {
-        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count;
+        // Don't allow advancing to next row while animation is playing
+        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count && !State.IsAnimatingResults;
         bool isPastRow = guessIndex < State.PreviousGuesses.Count;
         bool isFutureRow = guessIndex > State.PreviousGuesses.Count;
 
         return Grid(
             rows: new[] { new RowDefinition(GridLength.Star) },
             columns: new[] { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
-            
+
             // Left side - Erase button (only for current row)
-            isCurrentRow ? 
+            isCurrentRow ?
                 Border(
                     ImageButton()
                         .Source(ApplicationTheme.IconEraser)
@@ -125,10 +133,10 @@ partial class HomePage : Component<HomePageState>
                 .HeightRequest(40)
                 .WidthRequest(40)
                 .Margin(0, 0, 24, 0)
-                .GridColumn(0) 
+                .GridColumn(0)
                 .VStart()
                 : null,
-            
+
             // Center - Pegs
             HStack(spacing: 12,
                 Enumerable.Range(0, State.MaxCodeLength).Select(columnIndex =>
@@ -150,12 +158,12 @@ partial class HomePage : Component<HomePageState>
             .VCenter()
             .HCenter()
             .GridColumn(1),
-            
+
             // Right side - Key button (only for current row)
-            isCurrentRow ? 
+            isCurrentRow ?
                 Border(
                     ImageButton()
-                        .Source(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
+                        .Source(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
                             ApplicationTheme.IconKey : ApplicationTheme.IconKeyDisabled)
                         .Aspect(Aspect.AspectFit)
                         .Padding(2)
@@ -163,7 +171,7 @@ partial class HomePage : Component<HomePageState>
                         .WidthRequest(36)
                         .CornerRadius(18)
                         .BorderWidth(3)
-                        .BorderColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
+                        .BorderColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
                             ApplicationTheme.Primary : ApplicationTheme.Gray950)
                         .OnClicked(SubmitGuess)
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
@@ -171,17 +179,19 @@ partial class HomePage : Component<HomePageState>
                 )
                 .StrokeThickness(3)
                 .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                    ApplicationTheme.Primary.WithAlpha(0.7f) : ApplicationTheme.Black)
+                    ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Black)
                 .StrokeShape(RoundRectangle().CornerRadius(20))
                 .Background(ApplicationTheme.OffBlack)
                 .HeightRequest(40)
                 .WidthRequest(40)
-                .Margin(24, 0, 0, 0)                
-                .Shadow(new Shadow()
-                    .Brush(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
-                        new SolidColorBrush(ApplicationTheme.Primary.WithAlpha(0.8f)) : null)
-                    .Offset(0, 0)
-                    .Radius(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 8 : 0))
+                .Margin(24, 0, 0, 0).Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                    new Shadow()
+                        .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
+                        .Offset(0, 0)
+                        .Radius(8) :
+                    new Shadow()
+                        .Brush(new SolidColorBrush(Colors.Transparent))
+                        .Radius(0))
                 .Scale(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 1.1 : 1.0)
                 .GridColumn(2)
                 .VStart()
@@ -189,47 +199,58 @@ partial class HomePage : Component<HomePageState>
                 : null
         )
         .GridRow(rowIndex);
-    }    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
+    }
+    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
         // Check if this is the current row and the next peg to be filled
-        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count;
+        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count && !State.IsAnimatingResults;
         bool isNextTargetPeg = isCurrentRow && pegIndex == State.CurrentGuess.Count;
-        
+
+        // Check if this indicator should be showing during animation
+        bool isAnimatingThisRow = State.IsAnimatingResults && State.AnimatingGuessIndex == guessIndex;
+        bool shouldShowIndicator = showResults && (!isAnimatingThisRow || pegIndex <= State.AnimatingResultsIndex);
+
+        // Is this the currently animating indicator?
+        bool isActiveAnimatingIndicator = isAnimatingThisRow && pegIndex == State.AnimatingResultsIndex;        // Use a fixed height container to prevent shifting
         return VStack(spacing: 2,
+            // Main peg circle
             Border().StrokeThickness(isNextTargetPeg ? 3 : 2)
-                .Stroke(pegColor != null ? 
-                    pegColor.WithLuminosity(0.25f) : 
+                .Stroke(pegColor != null ?
+                    pegColor.WithLuminosity(0.25f) :
                     (isNextTargetPeg ? ApplicationTheme.Gray200 : ApplicationTheme.Gray400))
                 .Background(pegColor ?? ApplicationTheme.Gray900)
                 .HeightRequest(40)
                 .WidthRequest(40),
-                  showResults ?
-                  Border().StrokeThickness(0)
-                        .Stroke(ApplicationTheme.Gray500)
-                        .Background(new LinearGradientBrush(new GradientStopCollection
-                        {
-                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]).WithLuminosity(0.2f), 0.0f),
-                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]), 0.2f),
-                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]), 0.8f),
-                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]).WithLuminosity(0.2f), 1.0f)
-                        }))
-                        .HeightRequest(5)
-                        .HFill()
 
-                .Margin(0, 4) :
-                Label("")
-                .HeightRequest(16)
+            // Fixed height container for indicator - stable height to prevent layout shifts
+            Grid(
+                rows: new[] { new RowDefinition(GridLength.Auto) },
+                columns: new[] { new ColumnDefinition(GridLength.Star) },
+
+                // Result indicator (only visible when needed)
+                shouldShowIndicator ?
+                Border().StrokeThickness(0)
+                    .Background(GetResultColor(State.GuessResults[guessIndex][pegIndex]))
+                    .HeightRequest(6)
+                    .HFill()
+                    // Simplified animation for better performance - just opacity change
+                    .Opacity(isActiveAnimatingIndicator ? 0.0 : 1.0)
+                    .WithAnimation(duration: 100, easing: Easing.Linear) : null
+            )
+            .HeightRequest(16) // Fixed height container prevents shifting
+            .Margin(0, 4)
         );
     }
     private Color GetResultColor(GuessResult result)
     {
         return result switch
         {
-            GuessResult.Correct => ApplicationTheme.Primary,         // Green
-            GuessResult.WrongPosition => ApplicationTheme.GameAmber, // Orange/Amber
-            _ => ApplicationTheme.Gray600                            // Dark gray
+            GuessResult.Correct => ApplicationTheme.GameGreen,       // Vivid Green for correct position
+            GuessResult.WrongPosition => Color.FromRgb(0xFF, 0x85, 0x00), // Bright Orange for wrong position
+            _ => ApplicationTheme.Gray600                            // Dark gray for incorrect
         };
-    }    private VisualNode RenderControls()
+    }
+    private VisualNode RenderControls()
     {
         return Grid(
             rows: new[] { new RowDefinition(14), new RowDefinition(GridLength.Auto) },
@@ -287,10 +308,10 @@ partial class HomePage : Component<HomePageState>
             )
                 .GridRow(1)
                 .Margin(30, 30),
-                
+
             BoxView()
                 .GridRow(0)
-                .BackgroundColor(Colors.Black) 
+                .BackgroundColor(Colors.Black)
                 .VFill()
                 .HFill()
 
@@ -319,11 +340,11 @@ partial class HomePage : Component<HomePageState>
             SetState(s => s.CurrentGuess.RemoveAt(s.CurrentGuess.Count - 1));
         }
     }
-
     private void SubmitGuess()
     {
         if (State.GameOver || State.CurrentGuess.Count < State.MaxCodeLength) return;
 
+        // Initial state setup for results evaluation
         SetState(s =>
         {
             // Create a copy of the current guess
@@ -368,19 +389,79 @@ partial class HomePage : Component<HomePageState>
                 }
             }
 
-            s.GuessResults.Add(results);
+            s.GuessResults.Add(results);            // Immediately set animation flags to prevent the next row from becoming active
+            s.IsAnimatingResults = true;
+            s.AnimatingResultsIndex = -1; // Will be incremented to 0 in animation
+            s.AnimatingGuessIndex = s.PreviousGuesses.Count - 1;
+            s.IsRevealComplete = false;
 
-            // Check if game is won
-            bool isWon = results.All(r => r == GuessResult.Correct);
-            s.GameWon = isWon;
-
-            // Check if game is over (won or max attempts reached)
-            s.GameOver = isWon || s.PreviousGuesses.Count >= s.MaxAttempts;
-
-            // Reset current guess
+            // Clear the current guess
             s.CurrentGuess = new List<Color?>();
         });
+
+        // Start animation immediately - no delay needed since we're using a timer
+        MauiControls.Application.Current?.Dispatcher.Dispatch(AnimateNextIndicator);
+    }    private void AnimateNextIndicator()
+    {
+        // Stop animation if not in animation mode
+        if (!State.IsAnimatingResults)
+            return;
+            
+        // Start a fast timer that will animate each indicator
+        // This approach uses a single timer for all animations rather than
+        // nested Task.Delay calls which can cause performance issues
+        
+        // Create timer with a very short interval for performance
+        var timer = new System.Timers.Timer(120);
+        timer.AutoReset = true;
+        
+        timer.Elapsed += (sender, e) => 
+        {
+            MauiControls.Application.Current?.Dispatcher.Dispatch(() => 
+            {
+                // Update the animation index
+                SetState(s => 
+                {
+                    s.AnimatingResultsIndex++;
+                    
+                    // Check if we've completed all indicators
+                    if (s.AnimatingResultsIndex >= s.MaxCodeLength)
+                    {
+                        // Stop the timer
+                        timer.Stop();
+                        timer.Dispose();
+                        
+                        // Set final state
+                        var results = s.GuessResults[s.AnimatingGuessIndex];
+                        bool isWon = results.All(r => r == GuessResult.Correct);
+                        
+                        s.IsRevealComplete = true;
+                        s.GameWon = isWon;
+                        s.GameOver = isWon || s.PreviousGuesses.Count >= s.MaxAttempts;
+                        
+                        // Schedule a final update to reset animation state after a short delay
+                        Task.Delay(250).ContinueWith(_ => 
+                        {
+                            MauiControls.Application.Current?.Dispatcher.Dispatch(() => 
+                            {
+                                SetState(finalState => 
+                                {
+                                    finalState.IsAnimatingResults = false;
+                                    finalState.AnimatingResultsIndex = -1;
+                                    finalState.AnimatingGuessIndex = -1;
+                                    finalState.IsRevealComplete = false;
+                                });
+                            });
+                        });
+                    }
+                });
+            });
+        };
+        
+        // Start the timer
+        timer.Start();
     }
+
 
     private bool ColorEquals(Color c1, Color c2)
     {
