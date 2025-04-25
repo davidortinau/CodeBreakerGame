@@ -15,7 +15,7 @@ class HomePageState
     public List<List<GuessResult>> GuessResults { get; set; } = new();
     public List<Color?> CurrentGuess { get; set; } = new();
     public int MaxAttempts { get; } = 7;
-    public int MaxCodeLength { get; } = 4;
+    public int MaxCodeLength { get; } = 5;
     public bool GameOver { get; set; }
     public bool GameWon { get; set; }
     
