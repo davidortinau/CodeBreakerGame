@@ -47,6 +47,22 @@ class ApplicationTheme : Theme
     public static Brush Gray900Brush { get; } = new SolidColorBrush(Gray900);
     public static Brush Gray950Brush { get; } = new SolidColorBrush(Gray950);
 
+    public static FontImageSource IconKey { get; } = new FontImageSource
+    {
+        Glyph = FluentUI.key_32_regular, // Replace with actual glyph
+        FontFamily = FluentUI.FontFamily,
+        Color = White,
+        Size = 32
+    };
+
+    public static FontImageSource IconEraser { get; } = new FontImageSource
+    {
+        Glyph = FluentUI.eraser_24_regular, // Replace with actual glyph
+        FontFamily = FluentUI.FontFamily,
+        Color = White,
+        Size = 32
+    };
+
 
 
     protected override void OnApply()

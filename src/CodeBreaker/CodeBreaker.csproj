@@ -24,7 +24,7 @@
 		<ApplicationTitle>CodeBreaker</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.codebreaker</ApplicationId>
+		<ApplicationId>com.simplyprofound.codebreaker</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
