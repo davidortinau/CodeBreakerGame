@@ -17,16 +17,17 @@ class HomePageState
     public int MaxAttempts { get; } = 7;
     public int MaxCodeLength { get; } = 4;
     public bool GameOver { get; set; }
-    public bool GameWon { get; set; }    public List<Color> AvailableColors { get; } = new() 
+    public bool GameWon { get; set; }
+    public List<Color> AvailableColors { get; } = new()
     {
         // Expanded Atari 2600 palette colors
-        Color.FromRgb(0xCC, 0x33, 0x33),  // Red
-        Color.FromRgb(0x33, 0xCC, 0x33),  // Green
-        Color.FromRgb(0x33, 0x66, 0xCC),  // Blue
-        Color.FromRgb(0xCC, 0xCC, 0x33),  // Yellow
-        Color.FromRgb(0xCC, 0x33, 0xCC),  // Magenta
-        Color.FromRgb(0x33, 0xCC, 0xCC),  // Cyan
-        Color.FromRgb(0xFF, 0xFF, 0xFF),  // White
+        ApplicationTheme.GameRed,
+        ApplicationTheme.GameGreen,
+        ApplicationTheme.GameBlue,
+        ApplicationTheme.GameYellow,
+        ApplicationTheme.Magenta,
+        ApplicationTheme.GameCyan,
+        ApplicationTheme.White,
     };
 
     public HomePageState()
@@ -38,7 +39,7 @@ class HomePageState
     {
         Random rnd = new();
         SecretCode = new List<Color>();
-        
+
         // Generate secret code using available colors
         // Colors can repeat in the secret code
         for (int i = 0; i < MaxCodeLength; i++)
@@ -58,26 +59,26 @@ public enum GuessResult
 }
 
 partial class HomePage : Component<HomePageState>
-{    public override VisualNode Render()
+{
+    public override VisualNode Render()
         => ContentPage("CODE BREAKER",
-            Grid(rows:"*,Auto",
-                columns:"*",
-                // Main game content
-                // VStack(spacing: 15,
+            Grid(rows: "*,Auto",
+                columns: "*",
+                    // Main game content
+                    // VStack(spacing: 15,
                     // Game board with guess rows
                     RenderGameBoard(),
-                    
+
                     // Controls section
                     RenderControls(),
                 // )
                 // .Padding(15),
-                
+
                 // Game over overlay (conditionally shown)
                 State.GameOver ? RenderGameOverOverlay() : null
-            )
-            .BackgroundColor(Color.FromRgb(0x22, 0x22, 0x22)) // Dark Atari background
+            ).BackgroundColor(ApplicationTheme.Gray950) // Dark background
         )
-        .BackgroundColor(Color.FromRgb(0x22, 0x22, 0x22)); // Dark Atari background
+        .BackgroundColor(ApplicationTheme.Gray950); // Dark background
 
     private VisualNode RenderGameBoard()
     {
@@ -129,16 +130,14 @@ partial class HomePage : Component<HomePageState>
     private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
         return VStack(spacing: 2,
-            Border()
-                .StrokeThickness(2)
-                .Stroke(Color.FromRgb(0x88, 0x88, 0x88))
-                .Background(pegColor ?? Color.FromRgb(0x33, 0x33, 0x33))
+            Border().StrokeThickness(2)
+                .Stroke(ApplicationTheme.Gray400)
+                .Background(pegColor ?? ApplicationTheme.Gray900)
                 .HeightRequest(40)
                 .WidthRequest(40),
                   showResults ?
-                  Border()
-                        .StrokeThickness(0)
-                        .Stroke(Color.FromRgb(0x66, 0x66, 0x66))
+                  Border().StrokeThickness(0)
+                        .Stroke(ApplicationTheme.Gray500)
                         .Background(new LinearGradientBrush(new GradientStopCollection
                         {
                             new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]).WithLuminosity(0.2f), 0.0f),
@@ -148,20 +147,19 @@ partial class HomePage : Component<HomePageState>
                         }))
                         .HeightRequest(5)
                         .HFill()
-                    
+
                 .Margin(0, 4) :
                 Label("")
                 .HeightRequest(16)
         );
     }
-
     private Color GetResultColor(GuessResult result)
     {
         return result switch
         {
-            GuessResult.Correct => Color.FromRgb(0x33, 0xCC, 0x33),      // Green Color.FromRgb(0x33, 0xCC, 0x33)
-            GuessResult.WrongPosition => Color.FromRgb(0xCC, 0xAA, 0x33), // Orange/Amber
-            _ => Color.FromRgb(0x44, 0x44, 0x44)                         // Dark gray
+            GuessResult.Correct => ApplicationTheme.Primary,         // Green
+            GuessResult.WrongPosition => ApplicationTheme.GameAmber, // Orange/Amber
+            _ => ApplicationTheme.Gray600                            // Dark gray
         };
     }
 
@@ -176,8 +174,7 @@ partial class HomePage : Component<HomePageState>
 
                 // FIRST ROW - First 4 color buttons
                 HStack(spacing: 15,
-                    Enumerable.Range(0, 4).Select(colorIndex =>
-                        // Create a layered effect for arcade button look
+                    Enumerable.Range(0, 4).Select(colorIndex =>                        // Create a layered effect for arcade button look
                         Border(
                             Button() // The actual button with color
                                 .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
@@ -191,7 +188,7 @@ partial class HomePage : Component<HomePageState>
                             .StrokeThickness(3)
                             .Stroke(State.AvailableColors[colorIndex])
                             .StrokeShape(RoundRectangle().CornerRadius(32))
-                            .Background(Color.FromRgb(0x11, 0x11, 0x11))
+                            .Background(ApplicationTheme.OffBlack)
                             .HeightRequest(54)
                             .WidthRequest(54)
                     ).ToArray()
@@ -202,8 +199,7 @@ partial class HomePage : Component<HomePageState>
 
                 // SECOND ROW - Last 3 color buttons
                 HStack(spacing: 15,
-                    Enumerable.Range(4, 3).Select(colorIndex =>
-                        Border(
+                    Enumerable.Range(4, 3).Select(colorIndex => Border(
                             Button()
                                 .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
                                 .HeightRequest(44)
@@ -216,7 +212,7 @@ partial class HomePage : Component<HomePageState>
                             .StrokeThickness(3)
                             .Stroke(State.AvailableColors[colorIndex])
                             .StrokeShape(RoundRectangle().CornerRadius(32))
-                            .Background(Color.FromRgb(0x11, 0x11, 0x11))
+                            .Background(ApplicationTheme.OffBlack)
                             .HeightRequest(54)
                             .WidthRequest(54)
                     ).ToArray()
@@ -232,14 +228,14 @@ partial class HomePage : Component<HomePageState>
                         .OnClicked(SubmitGuess)
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
                         .BackgroundColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                            ApplicationTheme.Black : ApplicationTheme.Gray950) 
+                            ApplicationTheme.Black : ApplicationTheme.Gray950)
                         ,
 
                     Button()
                         .ImageSource(ApplicationTheme.IconEraser)
                         .OnClicked(EraseLastColor)
-                        .BackgroundColor(ApplicationTheme.Black) 
-                        
+                        .BackgroundColor(ApplicationTheme.Black)
+
                 )
                 .GridRow(0)
                 .GridColumn(1)
@@ -259,11 +255,11 @@ partial class HomePage : Component<HomePageState>
         .VEnd()
         ; // Slightly lighter than background
     }
-    
+
     private void AddColorToCurrent(Color color)
     {
         if (State.GameOver) return;
-        
+
         if (State.CurrentGuess.Count < State.MaxCodeLength)
         {
             SetState(s => s.CurrentGuess.Add(color));
@@ -273,28 +269,28 @@ partial class HomePage : Component<HomePageState>
     private void EraseLastColor()
     {
         if (State.GameOver) return;
-        
+
         if (State.CurrentGuess.Count > 0)
         {
             SetState(s => s.CurrentGuess.RemoveAt(s.CurrentGuess.Count - 1));
         }
     }
-    
+
     private void SubmitGuess()
     {
         if (State.GameOver || State.CurrentGuess.Count < State.MaxCodeLength) return;
-        
-        SetState(s => 
+
+        SetState(s =>
         {
             // Create a copy of the current guess
             var guessToCheck = new List<Color?>(s.CurrentGuess);
             s.PreviousGuesses.Add(guessToCheck);
-            
+
             // Evaluate the guess
             var results = new List<GuessResult>();
             var secretCodeCopy = new List<Color>(s.SecretCode);
             var guessCopy = new List<Color?>(guessToCheck);
-            
+
             // First check for exact matches (correct color in correct position)
             for (int i = 0; i < s.MaxCodeLength; i++)
             {
@@ -309,16 +305,16 @@ partial class HomePage : Component<HomePageState>
                     results.Add(GuessResult.Incorrect); // Placeholder, will update for wrong positions
                 }
             }
-            
+
             // Then check for color matches in wrong positions
             for (int i = 0; i < s.MaxCodeLength; i++)
             {
                 if (guessCopy[i] == null) continue; // Skip already matched
-                
+
                 for (int j = 0; j < s.MaxCodeLength; j++)
                 {
                     if (secretCodeCopy[j] == Color.FromArgb("Transparent")) continue; // Skip already matched
-                    
+
                     if (ColorEquals(guessCopy[i]!, secretCodeCopy[j]))
                     {
                         results[i] = GuessResult.WrongPosition;
@@ -327,32 +323,32 @@ partial class HomePage : Component<HomePageState>
                     }
                 }
             }
-            
+
             s.GuessResults.Add(results);
-            
+
             // Check if game is won
             bool isWon = results.All(r => r == GuessResult.Correct);
             s.GameWon = isWon;
-            
+
             // Check if game is over (won or max attempts reached)
             s.GameOver = isWon || s.PreviousGuesses.Count >= s.MaxAttempts;
-            
+
             // Reset current guess
             s.CurrentGuess = new List<Color?>();
         });
     }
-    
+
     private bool ColorEquals(Color c1, Color c2)
     {
         // Simple color comparison based on RGB values
-        return Math.Abs(c1.Red - c2.Red) < 0.01 && 
-               Math.Abs(c1.Green - c2.Green) < 0.01 && 
+        return Math.Abs(c1.Red - c2.Red) < 0.01 &&
+               Math.Abs(c1.Green - c2.Green) < 0.01 &&
                Math.Abs(c1.Blue - c2.Blue) < 0.01;
     }
-    
+
     private void NewGame()
     {
-        SetState(s => 
+        SetState(s =>
         {
             s.SecretCode = new List<Color>();
             s.PreviousGuesses = new List<List<Color?>>();
@@ -360,7 +356,7 @@ partial class HomePage : Component<HomePageState>
             s.CurrentGuess = new List<Color?>();
             s.GameOver = false;
             s.GameWon = false;
-            
+
             // Generate new secret code
             Random rnd = new();
             for (int i = 0; i < s.MaxCodeLength; i++)
@@ -375,68 +371,60 @@ partial class HomePage : Component<HomePageState>
     {
         return Grid(
             // Semi-transparent dark background
-            Border()
-                .Background(new SolidColorBrush(Color.FromRgba(0, 0, 0, 0.85)))
+            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
                 .HFill()
                 .VFill(),
-            
+
             VStack(spacing: 30,
                 // Game result text with glowing effect
                 Border(
-                    Label(State.GameWon ? "YOU WIN!" : "GAME OVER")                        .FontFamily("monospace")
+                    Label(State.GameWon ? "YOU WIN!" : "GAME OVER").FontFamily("monospace")
                         .FontSize(36)
-                        .FontAttributes(FontAttributes.Bold)
-                        .TextColor(Color.FromRgb(0xFF, 0xFF, 0xFF))
+                        .FontAttributes(FontAttributes.Bold).TextColor(ApplicationTheme.White)
                         .HCenter()
                 )
                 .Background(new RadialGradientBrush(new GradientStopCollection
-                {
-                    new GradientStop(State.GameWon ? 
-                        Color.FromRgb(0x00, 0x80, 0x00) : // Darker green center for win
-                        Color.FromRgb(0x80, 0x00, 0x00),  // Darker red center for loss
+                {                    new GradientStop(State.GameWon ?                        ApplicationTheme.Primary.WithLuminosity(0.6f) : // Darker green center for win
+                        ApplicationTheme.GameDarkRed,  // Darker red center for loss
                         0.0f),
-                    new GradientStop(Color.FromRgba(0, 0, 0, 0), 1.0f) // Transparent outer edge
+                    new GradientStop(ApplicationTheme.Black.WithAlpha(0.0f), 1.0f) // Transparent outer edge
                 }))
                 .HeightRequest(120)
                 .WidthRequest(300)
                 .StrokeThickness(0),
-                
+
                 // Show secret code if game is lost
-                !State.GameWon ? 
+                !State.GameWon ?
                     VStack(spacing: 10,
                         Label("SECRET CODE:")
                             .FontFamily("monospace")
-                            .FontAttributes(FontAttributes.Bold)
-                            .TextColor(Color.FromRgb(0xCC, 0xCC, 0xCC))
+                            .FontAttributes(FontAttributes.Bold).TextColor(ApplicationTheme.Gray100)
                             .HCenter(),
-                            
+
                         HStack(spacing: 8,
-                            Enumerable.Range(0, State.MaxCodeLength).Select(i => 
-                                Border()
-                                    .StrokeThickness(2)
-                                    .Stroke(Color.FromRgb(0x88, 0x88, 0x88))
+                            Enumerable.Range(0, State.MaxCodeLength).Select(i =>
+                                Border().StrokeThickness(2)
+                                    .Stroke(ApplicationTheme.Gray400)
                                     .Background(State.SecretCode[i])
                                     .HeightRequest(40)
                                     .WidthRequest(40)
                             ).ToArray()
                         )
                         .HCenter()
-                    ) : null,
-                
-                // Play again button with arcade style
+                    ) : null,                // Play again button with arcade style
                 Button("PLAY AGAIN")
                     .OnClicked(NewGame)
-                    .BackgroundColor(State.GameWon ? 
-                        Color.FromRgb(0x33, 0xCC, 0x33) : // Green for win
-                        Color.FromRgb(0xCC, 0x33, 0x33))  // Red for loss
-                    .TextColor(Color.FromRgb(0xFF, 0xFF, 0xFF))
+                    .BackgroundColor(State.GameWon ?
+                        ApplicationTheme.GameGreen : // Green for win
+                        ApplicationTheme.GameRed)    // Red for loss
+                    .TextColor(ApplicationTheme.White)
                     .FontFamily("monospace")
                     .FontSize(20)
                     .FontAttributes(FontAttributes.Bold)
                     .HeightRequest(60)
                     .WidthRequest(200)
                     .BorderWidth(4)
-                    .BorderColor(Color.FromRgb(0x88, 0x88, 0x88))
+                    .BorderColor(ApplicationTheme.Gray400)
             )
             .Center()
         )

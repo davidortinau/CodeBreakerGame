@@ -24,6 +24,15 @@ class ApplicationTheme : Theme
     public static Color OffBlack { get; } = Color.FromRgba(31, 31, 31, 255); // #1F1F1F
     public static Color OffWhite { get; } = Color.FromRgba(241, 241, 241, 255); // #F1F1F1
 
+    // Game-specific colors (Atari 2600 inspired palette)
+    public static Color GameRed { get; } = Color.FromRgb(0xCC, 0x33, 0x33); // #CC3333
+    public static Color GameGreen { get; } = Color.FromRgb(0x33, 0xCC, 0x33); // #33CC33
+    public static Color GameBlue { get; } = Color.FromRgb(0x33, 0x66, 0xCC); // #3366CC
+    public static Color GameYellow { get; } = Color.FromRgb(0xCC, 0xCC, 0x33); // #CCCC33
+    public static Color GameCyan { get; } = Color.FromRgb(0x33, 0xCC, 0xCC); // #33CCCC
+    public static Color GameAmber { get; } = Color.FromRgb(0xCC, 0xAA, 0x33); // #CCAA33
+    public static Color GameDarkRed { get; } = Color.FromRgb(0x80, 0x00, 0x00); // #800000
+
     public static Color Gray100 { get; } = Color.FromRgba(225, 225, 225, 255); // #E1E1E1
     public static Color Gray200 { get; } = Color.FromRgba(200, 200, 200, 255); // #C8C8C8
     public static Color Gray300 { get; } = Color.FromRgba(172, 172, 172, 255); // #ACACAC
