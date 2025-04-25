@@ -177,7 +177,7 @@ partial class HomePage : Component<HomePageState>
                 columns: "*, auto",
 
                 // FIRST ROW - First 4 color buttons
-                HStack(spacing: 15,
+                HStack(spacing: 12,
                     Enumerable.Range(0, 4).Select(colorIndex =>                        // Create a layered effect for arcade button look
                         Border(
                             Button() // The actual button with color
@@ -202,7 +202,7 @@ partial class HomePage : Component<HomePageState>
                 .HCenter(),
 
                 // SECOND ROW - Last 3 color buttons
-                HStack(spacing: 15,
+                HStack(spacing: 12,
                     Enumerable.Range(4, 3).Select(colorIndex => Border(
                             Button()
                                 .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
@@ -226,7 +226,7 @@ partial class HomePage : Component<HomePageState>
                 .HCenter(),
 
                 // RIGHT COLUMN - Action buttons stacked vertically
-                VStack(spacing: 15,
+                VStack(spacing: 12,
                     Border(
                         ImageButton()
                         .Source(ApplicationTheme.IconKey)
@@ -277,16 +277,17 @@ partial class HomePage : Component<HomePageState>
             )
                 .GridRow(1)
                 .Margin(30, 30),
+                
             BoxView()
                 .GridRow(0)
-                .BackgroundColor(Colors.Black) // Dark Atari background
+                .BackgroundColor(Colors.Black) 
                 .VFill()
                 .HFill()
 
         )
         .GridRow(1)
         .VEnd()
-        ; // Slightly lighter than background
+        ; 
     }
 
     private void AddColorToCurrent(Color color)
