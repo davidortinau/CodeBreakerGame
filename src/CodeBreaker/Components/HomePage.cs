@@ -113,7 +113,9 @@ partial class HomePage : Component<HomePageState>
             .HCenter()
         )
         .GridRow(rowIndex);
-    }    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
+    }
+
+    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
         return VStack(spacing: 2,
             Border()
@@ -122,17 +124,21 @@ partial class HomePage : Component<HomePageState>
                 .Background(pegColor ?? Color.FromRgb(0x33, 0x33, 0x33))
                 .HeightRequest(40)
                 .WidthRequest(40),
-                
-            showResults ? 
-                
-                    Border()
+                  showResults ?
+                  Border()
                         .StrokeThickness(0)
                         .Stroke(Color.FromRgb(0x66, 0x66, 0x66))
-                        .Background(GetResultColor(State.GuessResults[guessIndex][pegIndex]))
+                        .Background(new LinearGradientBrush(new GradientStopCollection
+                        {
+                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]).WithLuminosity(0.2f), 0.0f),
+                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]), 0.2f),
+                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]), 0.8f),
+                            new GradientStop(GetResultColor(State.GuessResults[guessIndex][pegIndex]).WithLuminosity(0.2f), 1.0f)
+                        }))
                         .HeightRequest(5)
                         .HFill()
-                
-                .Margin(0, 4) : 
+                    
+                .Margin(0, 4) :
                 Label("")
                 .HeightRequest(16)
         );
