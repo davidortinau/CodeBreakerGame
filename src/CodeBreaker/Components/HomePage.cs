@@ -155,7 +155,8 @@ partial class HomePage : Component<HomePageState>
             isCurrentRow ? 
                 Border(
                     ImageButton()
-                        .Source(ApplicationTheme.IconKey)
+                        .Source(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
+                            ApplicationTheme.IconKey : ApplicationTheme.IconKeyDisabled)
                         .Aspect(Aspect.AspectFit)
                         .Padding(2)
                         .HeightRequest(36)
@@ -166,16 +167,17 @@ partial class HomePage : Component<HomePageState>
                             ApplicationTheme.Primary : ApplicationTheme.Gray950)
                         .OnClicked(SubmitGuess)
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
-                        .BackgroundColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                            ApplicationTheme.Black : ApplicationTheme.Gray950)
-        )               .StrokeThickness(3)
+                        .BackgroundColor(ApplicationTheme.Black)
+                )
+                .StrokeThickness(3)
                 .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
                     ApplicationTheme.Primary.WithAlpha(0.7f) : ApplicationTheme.Black)
                 .StrokeShape(RoundRectangle().CornerRadius(20))
                 .Background(ApplicationTheme.OffBlack)
                 .HeightRequest(40)
                 .WidthRequest(40)
-                .Margin(24, 0, 0, 0)                .Shadow(new Shadow()
+                .Margin(24, 0, 0, 0)                
+                .Shadow(new Shadow()
                     .Brush(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
                         new SolidColorBrush(ApplicationTheme.Primary.WithAlpha(0.8f)) : null)
                     .Offset(0, 0)

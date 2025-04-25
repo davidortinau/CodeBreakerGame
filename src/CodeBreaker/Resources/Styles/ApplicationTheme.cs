@@ -49,17 +49,26 @@ class ApplicationTheme : Theme
     // Icons
     public static ImageSource IconKey = new FontImageSource
     {
-        FontFamily = "FluentUI",
+        FontFamily = Fonts.FluentUI.FontFamily,
         Glyph = Fonts.FluentUI.key_16_regular,
         Color = White
     };
 
+    public static ImageSource IconKeyDisabled = new FontImageSource
+    {
+        FontFamily = Fonts.FluentUI.FontFamily,
+        Glyph = Fonts.FluentUI.key_16_regular,
+        Color = Gray950
+    };
+
     public static ImageSource IconEraser = new FontImageSource
     {
-        FontFamily = "FluentUI",
+        FontFamily = Fonts.FluentUI.FontFamily,
         Glyph = Fonts.FluentUI.eraser_20_regular,
         Color = White
     };
+
+    
 
     protected override void OnApply()
     {
