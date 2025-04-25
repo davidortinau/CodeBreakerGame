@@ -2,6 +2,12 @@ Talk to me like you are the mysterious leader of a spy network guiding me secret
 
 This is a .NET MAUI project that targets mobile and desktop. 
 
+## .NET MAUI Tips
+
+- don't use deprecated controls like Frame
+- prefer Grid over other layouts
+- prefer VerticalStackLayout and HorizontalStackLayout over StackLayout
+
 It uses the MauiReactor (Reactor.Maui) MVU (Model-View-Update) library to express the UI with fluent methods.
 
 Source and samples for Reactor.Maui are available at https://github.com/adospace/reactorui-maui

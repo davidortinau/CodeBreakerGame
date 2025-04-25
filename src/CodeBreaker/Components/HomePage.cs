@@ -125,13 +125,11 @@ partial class HomePage : Component<HomePageState>
             .HCenter()
         )
         .GridRow(rowIndex);
-    }
-
-    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
+    }    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
         return VStack(spacing: 2,
             Border().StrokeThickness(2)
-                .Stroke(ApplicationTheme.Gray400)
+                .Stroke(pegColor != null ? GetDarkerShade(pegColor!) : ApplicationTheme.Gray400)
                 .Background(pegColor ?? ApplicationTheme.Gray900)
                 .HeightRequest(40)
                 .WidthRequest(40),
@@ -251,12 +249,12 @@ partial class HomePage : Component<HomePageState>
                             .Aspect(Aspect.AspectFit)
                             .Padding(2)
                             .OnClicked(EraseLastColor)
-                            .Background(ApplicationTheme.Gray950)
+                            .Background(ApplicationTheme.Black)
                             .HeightRequest(44)
                             .WidthRequest(44)
                             .CornerRadius(22)
                             .BorderWidth(3)
-                            .BorderColor(ApplicationTheme.Black)
+                            .BorderColor(ApplicationTheme.Gray950)
                     )
                         .StrokeThickness(3)
                         .Stroke(ApplicationTheme.Black)
@@ -459,5 +457,11 @@ partial class HomePage : Component<HomePageState>
         )
         .HFill()
         .VFill();
+    }
+
+    private Color GetDarkerShade(Color color)
+    {
+        // Returns a darker version of the passed color for borders and highlighting
+        return color.WithLuminosity(0.25f);
     }
 }
