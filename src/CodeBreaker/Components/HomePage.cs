@@ -93,9 +93,7 @@ partial class HomePage : Component<HomePageState>
         .VCenter()
         .RowSpacing(12)
         .Margin(15);
-    }
-
-    private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
+    }    private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
     {
         bool isCurrentRow = guessIndex == State.PreviousGuesses.Count;
         bool isPastRow = guessIndex < State.PreviousGuesses.Count;
@@ -103,7 +101,35 @@ partial class HomePage : Component<HomePageState>
 
         return Grid(
             rows: new[] { new RowDefinition(GridLength.Star) },
-            columns: new[] { new ColumnDefinition(GridLength.Star) },
+            columns: new[] { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            
+            // Left side - Erase button (only for current row)
+            isCurrentRow ? 
+                Border(
+                    ImageButton()
+                        .Source(ApplicationTheme.IconEraser)
+                        .Aspect(Aspect.AspectFit)
+                        .Padding(2)
+                        .OnClicked(EraseLastColor)
+                        .Background(ApplicationTheme.Black)
+                        .HeightRequest(36)
+                        .WidthRequest(36)
+                        .CornerRadius(18)
+                        .BorderWidth(3)
+                        .BorderColor(ApplicationTheme.Gray950)
+                )
+                .StrokeThickness(3)
+                .Stroke(ApplicationTheme.Black)
+                .StrokeShape(RoundRectangle().CornerRadius(20))
+                .Background(ApplicationTheme.OffBlack)
+                .HeightRequest(40)
+                .WidthRequest(40)
+                .Margin(0, 0, 24, 0)
+                .GridColumn(0) 
+                .VStart()
+                : null,
+            
+            // Center - Pegs
             HStack(spacing: 12,
                 Enumerable.Range(0, State.MaxCodeLength).Select(columnIndex =>
                 {
@@ -123,6 +149,35 @@ partial class HomePage : Component<HomePageState>
             )
             .VCenter()
             .HCenter()
+            .GridColumn(1),
+            
+            // Right side - Key button (only for current row)
+            isCurrentRow ? 
+                Border(
+                    ImageButton()
+                        .Source(ApplicationTheme.IconKey)
+                        .Aspect(Aspect.AspectFit)
+                        .Padding(2)
+                        .HeightRequest(36)
+                        .WidthRequest(36)
+                        .CornerRadius(18)
+                        .BorderWidth(3)
+                        .BorderColor(ApplicationTheme.Gray950)
+                        .OnClicked(SubmitGuess)
+                        .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
+                        .BackgroundColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                            ApplicationTheme.Black : ApplicationTheme.Gray950)
+                )
+                .StrokeThickness(3)
+                .Stroke(ApplicationTheme.Black)
+                .StrokeShape(RoundRectangle().CornerRadius(20))
+                .Background(ApplicationTheme.OffBlack)
+                .HeightRequest(40)
+                .WidthRequest(40)
+                .Margin(24, 0, 0, 0)
+                .GridColumn(2)
+                .VStart()
+                : null
         )
         .GridRow(rowIndex);
     }    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
@@ -165,16 +220,14 @@ partial class HomePage : Component<HomePageState>
             GuessResult.WrongPosition => ApplicationTheme.GameAmber, // Orange/Amber
             _ => ApplicationTheme.Gray600                            // Dark gray
         };
-    }
-
-    private VisualNode RenderControls()
+    }    private VisualNode RenderControls()
     {
         return Grid(
             rows: new[] { new RowDefinition(14), new RowDefinition(GridLength.Auto) },
             columns: Enumerable.Range(0, 1).Select(_ => new ColumnDefinition(GridLength.Star)).ToArray(),
             Grid(
                 rows: "auto, auto",
-                columns: "*, auto",
+                columns: "*",
 
                 // FIRST ROW - First 4 color buttons
                 HStack(spacing: 12,
@@ -198,7 +251,6 @@ partial class HomePage : Component<HomePageState>
                     ).ToArray()
                 )
                 .GridRow(0)
-                .GridColumn(0)
                 .HCenter(),
 
                 // SECOND ROW - Last 3 color buttons
@@ -222,58 +274,7 @@ partial class HomePage : Component<HomePageState>
                     ).ToArray()
                 )
                 .GridRow(1)
-                .GridColumn(0)
-                .HCenter(),
-
-                // RIGHT COLUMN - Action buttons stacked vertically
-                VStack(spacing: 12,
-                    Border(
-                        ImageButton()
-                        .Source(ApplicationTheme.IconKey)
-                        .Aspect(Aspect.AspectFit)
-                        .Padding(2)
-                        .HeightRequest(44)
-                        .WidthRequest(44)
-                        .CornerRadius(22)
-                        .BorderWidth(3)
-                        .BorderColor(ApplicationTheme.Gray950)
-                        .OnClicked(SubmitGuess)
-                        .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
-                        .BackgroundColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                            ApplicationTheme.Black : ApplicationTheme.Gray950)
-                    )
-                        .StrokeThickness(3)
-                        .Stroke(ApplicationTheme.Black)
-                        .StrokeShape(RoundRectangle().CornerRadius(32))
-                        .Background(ApplicationTheme.OffBlack)
-                        .HeightRequest(54)
-                        .WidthRequest(54)
-                        ,
-                    Border(
-                        ImageButton()
-                            .Source(ApplicationTheme.IconEraser)
-                            .Aspect(Aspect.AspectFit)
-                            .Padding(2)
-                            .OnClicked(EraseLastColor)
-                            .Background(ApplicationTheme.Black)
-                            .HeightRequest(44)
-                            .WidthRequest(44)
-                            .CornerRadius(22)
-                            .BorderWidth(3)
-                            .BorderColor(ApplicationTheme.Gray950)
-                    )
-                        .StrokeThickness(3)
-                        .Stroke(ApplicationTheme.Black)
-                        .StrokeShape(RoundRectangle().CornerRadius(32))
-                        .Background(ApplicationTheme.OffBlack)
-                        .HeightRequest(54)
-                        .WidthRequest(54)
-
-                )
-                .GridRow(0)
-                .GridColumn(1)
-                .GridRowSpan(2)
-                .VCenter()
+                .HCenter()
             )
                 .GridRow(1)
                 .Margin(30, 30),
@@ -287,7 +288,7 @@ partial class HomePage : Component<HomePageState>
         )
         .GridRow(1)
         .VEnd()
-        ; 
+        ;
     }
 
     private void AddColorToCurrent(Color color)
