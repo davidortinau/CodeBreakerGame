@@ -1,4 +1,4 @@
-﻿namespace CodeBreaker.Components;
+namespace CodeBreaker.Components;
 
 using Microsoft.Maui.Graphics;
 using System;
@@ -127,9 +127,15 @@ partial class HomePage : Component<HomePageState>
         .GridRow(rowIndex);
     }    private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
+        // Check if this is the current row and the next peg to be filled
+        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count;
+        bool isNextTargetPeg = isCurrentRow && pegIndex == State.CurrentGuess.Count;
+        
         return VStack(spacing: 2,
-            Border().StrokeThickness(2)
-                .Stroke(pegColor != null ? GetDarkerShade(pegColor!) : ApplicationTheme.Gray400)
+            Border().StrokeThickness(isNextTargetPeg ? 3 : 2)
+                .Stroke(pegColor != null ? 
+                    pegColor.WithLuminosity(0.25f) : 
+                    (isNextTargetPeg ? ApplicationTheme.Gray200 : ApplicationTheme.Gray400))
                 .Background(pegColor ?? ApplicationTheme.Gray900)
                 .HeightRequest(40)
                 .WidthRequest(40),
@@ -457,11 +463,6 @@ partial class HomePage : Component<HomePageState>
         )
         .HFill()
         .VFill();
-    }
-
-    private Color GetDarkerShade(Color color)
-    {
-        // Returns a darker version of the passed color for borders and highlighting
-        return color.WithLuminosity(0.25f);
-    }
+    }    // Using the WithLuminosity, WithAlpha, WithSaturation, or WithHue extension methods directly
+    // instead of wrapper methods for better maintainability
 }
