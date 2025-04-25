@@ -19,17 +19,17 @@ class ApplicationTheme : Theme
 
     public static Color White { get; } = Colors.White; // #FFFFFF
     public static Color Black { get; } = Colors.Black; // #000000
-    public static Color Magenta { get; } = Color.FromRgba(214, 0, 170, 255); // #D600AA
+    public static Color Magenta { get; } = Color.FromRgb(0xB1, 0x0D, 0xC9); // #B10DC9
     public static Color MidnightBlue { get; } = Color.FromRgba(25, 6, 73, 255); // #190649
-    public static Color OffBlack { get; } = Color.FromRgba(31, 31, 31, 255); // #1F1F1F
+    public static Color OffBlack { get; } = Color.FromRgb(0x11, 0x11, 0x11); // #111111
     public static Color OffWhite { get; } = Color.FromRgba(241, 241, 241, 255); // #F1F1F1
 
     // Game-specific colors (Atari 2600 inspired palette)
-    public static Color GameRed { get; } = Color.FromRgb(0xCC, 0x33, 0x33); // #CC3333
-    public static Color GameGreen { get; } = Color.FromRgb(0x33, 0xCC, 0x33); // #33CC33
-    public static Color GameBlue { get; } = Color.FromRgb(0x33, 0x66, 0xCC); // #3366CC
-    public static Color GameYellow { get; } = Color.FromRgb(0xCC, 0xCC, 0x33); // #CCCC33
-    public static Color GameCyan { get; } = Color.FromRgb(0x33, 0xCC, 0xCC); // #33CCCC
+    public static Color GameRed { get; } = Color.FromRgb(0xFF, 0x41, 0x36); // #FF4136
+    public static Color GameGreen { get; } = Color.FromRgb(0x2E, 0xCC, 0x40); // #2ECC40
+    public static Color GameBlue { get; } = Color.FromRgb(0x00, 0x74, 0xD9); // #0074D9
+    public static Color GameYellow { get; } = Color.FromRgb(0xFF, 0xDC, 0x00); // #FFDC00
+    public static Color GameCyan { get; } = Color.FromRgb(0x7F, 0xDB, 0xFF); // #7FDBFF
     public static Color GameAmber { get; } = Color.FromRgb(0xCC, 0xAA, 0x33); // #CCAA33
     public static Color GameDarkRed { get; } = Color.FromRgb(0x80, 0x00, 0x00); // #800000
 

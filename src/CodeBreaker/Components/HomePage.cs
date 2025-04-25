@@ -76,9 +76,9 @@ partial class HomePage : Component<HomePageState>
 
                 // Game over overlay (conditionally shown)
                 State.GameOver ? RenderGameOverOverlay() : null
-            ).BackgroundColor(ApplicationTheme.Gray950) // Dark background
+            )
         )
-        .BackgroundColor(ApplicationTheme.Gray950); // Dark background
+        .Background(ApplicationTheme.OffBlack); // Dark background
 
     private VisualNode RenderGameBoard()
     {
@@ -91,7 +91,7 @@ partial class HomePage : Component<HomePageState>
         )
         .HCenter()
         .VCenter()
-        .RowSpacing(8)
+        .RowSpacing(12)
         .Margin(15);
     }
 
@@ -104,7 +104,7 @@ partial class HomePage : Component<HomePageState>
         return Grid(
             rows: new[] { new RowDefinition(GridLength.Star) },
             columns: new[] { new ColumnDefinition(GridLength.Star) },
-            HStack(spacing: 40,
+            HStack(spacing: 12,
                 Enumerable.Range(0, State.MaxCodeLength).Select(columnIndex =>
                 {
                     Color? pegColor = null;
@@ -223,18 +223,47 @@ partial class HomePage : Component<HomePageState>
 
                 // RIGHT COLUMN - Action buttons stacked vertically
                 VStack(spacing: 15,
-                    Button()
-                        .ImageSource(ApplicationTheme.IconKey)
+                    Border(
+                        ImageButton()
+                        .Source(ApplicationTheme.IconKey)
+                        .Aspect(Aspect.AspectFit)
+                        .Padding(2)
+                        .HeightRequest(44)
+                        .WidthRequest(44)
+                        .CornerRadius(22)
+                        .BorderWidth(3)
+                        .BorderColor(ApplicationTheme.Gray950)
                         .OnClicked(SubmitGuess)
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
                         .BackgroundColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
                             ApplicationTheme.Black : ApplicationTheme.Gray950)
+                    )
+                        .StrokeThickness(3)
+                        .Stroke(ApplicationTheme.Black)
+                        .StrokeShape(RoundRectangle().CornerRadius(32))
+                        .Background(ApplicationTheme.OffBlack)
+                        .HeightRequest(54)
+                        .WidthRequest(54)
                         ,
-
-                    Button()
-                        .ImageSource(ApplicationTheme.IconEraser)
-                        .OnClicked(EraseLastColor)
-                        .BackgroundColor(ApplicationTheme.Black)
+                    Border(
+                        ImageButton()
+                            .Source(ApplicationTheme.IconEraser)
+                            .Aspect(Aspect.AspectFit)
+                            .Padding(2)
+                            .OnClicked(EraseLastColor)
+                            .Background(ApplicationTheme.Gray950)
+                            .HeightRequest(44)
+                            .WidthRequest(44)
+                            .CornerRadius(22)
+                            .BorderWidth(3)
+                            .BorderColor(ApplicationTheme.Black)
+                    )
+                        .StrokeThickness(3)
+                        .Stroke(ApplicationTheme.Black)
+                        .StrokeShape(RoundRectangle().CornerRadius(32))
+                        .Background(ApplicationTheme.OffBlack)
+                        .HeightRequest(54)
+                        .WidthRequest(54)
 
                 )
                 .GridRow(0)
