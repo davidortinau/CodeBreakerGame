@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MauiReactor;
+using MauiReactor.Shapes;
 
 class HomePageState
 {
@@ -141,7 +142,7 @@ partial class HomePage : Component<HomePageState>
     {
         return result switch
         {
-            GuessResult.Correct => Color.FromRgb(0x33, 0xCC, 0x33),      // Green
+            GuessResult.Correct => Color.FromRgb(0x33, 0xCC, 0x33),      // Green Color.FromRgb(0x33, 0xCC, 0x33)
             GuessResult.WrongPosition => Color.FromRgb(0xCC, 0xAA, 0x33), // Orange/Amber
             _ => Color.FromRgb(0x44, 0x44, 0x44)                         // Dark gray
         };
@@ -152,19 +153,29 @@ partial class HomePage : Component<HomePageState>
         return Grid(
             rows: new[] { new RowDefinition(GridLength.Auto) },
             columns: Enumerable.Range(0, 1).Select(_ => new ColumnDefinition(GridLength.Star)).ToArray(),
-            VStack(spacing: 20,
-                // Color selection buttons
+            VStack(spacing: 20,                // Color selection buttons - classic arcade style
                 HStack(spacing: 15,
                     Enumerable.Range(0, State.AvailableColors.Count).Select(colorIndex => 
-                        Button()
-                        .BackgroundColor(State.AvailableColors[colorIndex])
-                        .HeightRequest(50)
-                        .WidthRequest(50)
-                        .CornerRadius(25)
-                        .TextColor(Color.FromRgb(0, 0, 0))
-                        .BorderWidth(3)
-                        .BorderColor(Color.FromRgb(0xDD, 0xDD, 0xDD))
-                        .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
+                        
+                            // Create a layered effect for arcade button look
+                            Border(
+                                Button() // The actual button with color
+                                    .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
+                                    .HeightRequest(54)
+                                    .WidthRequest(54)
+                                    .CornerRadius(27)
+                                    .BorderWidth(3) // Nice thick border for arcade style
+                                    .BorderColor(State.AvailableColors[colorIndex]) // Slightly desaturated for the border
+                                    .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
+                            ) // Outer border - acts as button bezel
+                                .StrokeThickness(3)
+                                .Stroke(State.AvailableColors[colorIndex])
+                                .StrokeShape(RoundRectangle().CornerRadius(32))
+                                .Background(Color.FromRgb(0x11, 0x11, 0x11))
+                                .HeightRequest(64)
+                                .WidthRequest(64)                              
+                            
+                        
                     ).ToArray()
                 )
                 .HCenter(),
