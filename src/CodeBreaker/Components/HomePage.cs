@@ -162,21 +162,28 @@ partial class HomePage : Component<HomePageState>
                         .WidthRequest(36)
                         .CornerRadius(18)
                         .BorderWidth(3)
-                        .BorderColor(ApplicationTheme.Gray950)
+                        .BorderColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
+                            ApplicationTheme.Primary : ApplicationTheme.Gray950)
                         .OnClicked(SubmitGuess)
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
                         .BackgroundColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
                             ApplicationTheme.Black : ApplicationTheme.Gray950)
-                )
-                .StrokeThickness(3)
-                .Stroke(ApplicationTheme.Black)
+        )               .StrokeThickness(3)
+                .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                    ApplicationTheme.Primary.WithAlpha(0.7f) : ApplicationTheme.Black)
                 .StrokeShape(RoundRectangle().CornerRadius(20))
                 .Background(ApplicationTheme.OffBlack)
                 .HeightRequest(40)
                 .WidthRequest(40)
-                .Margin(24, 0, 0, 0)
+                .Margin(24, 0, 0, 0)                .Shadow(new Shadow()
+                    .Brush(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 
+                        new SolidColorBrush(ApplicationTheme.Primary.WithAlpha(0.8f)) : null)
+                    .Offset(0, 0)
+                    .Radius(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 8 : 0))
+                .Scale(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 1.1 : 1.0)
                 .GridColumn(2)
                 .VStart()
+                .WithAnimation(duration: 800, easing: Easing.CubicInOut)
                 : null
         )
         .GridRow(rowIndex);
