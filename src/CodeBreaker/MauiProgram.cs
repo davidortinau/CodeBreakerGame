@@ -12,7 +12,7 @@ namespace CodeBreaker
         {
             var builder = MauiApp.CreateBuilder();
             builder
-                .UseMauiReactorApp<HomePage>(app =>
+                .UseMauiReactorApp<App>(app =>
                 {
                     app.UseTheme<ApplicationTheme>();
                 },

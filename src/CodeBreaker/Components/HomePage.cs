@@ -17,7 +17,6 @@ class HomePageState
     public List<Color?> CurrentGuess { get; set; } = new();
     public int MaxAttempts { get; } = 7;
     public int MaxCodeLength { get; } = 5;
-    public int DifficultyLevel { get; set; } = 1; // 0 = Easy (show indicators), 1 = Medium (show circular indicator)
     public bool GameOver { get; set; }
     public bool GameWon { get; set; }
 
@@ -66,8 +65,15 @@ public enum GuessResult
     Correct         // Right color, right position
 }
 
-partial class HomePage : Component<HomePageState>
+partial class HomePage : Component<HomePageState, GameProps>
 {
+
+    protected override void OnPropsChanged()
+    {
+        
+        base.OnPropsChanged();
+    }
+
     public override VisualNode Render()
         => ContentPage("CODE BREAKER",
             Grid(rows: "*,Auto",
@@ -86,6 +92,7 @@ partial class HomePage : Component<HomePageState>
                 State.GameOver ? RenderGameOverOverlay() : null
             )
         )
+        .HasNavigationBar(false)
         .Background(ApplicationTheme.OffBlack); // Dark background
 
     private VisualNode RenderGameBoard()
@@ -120,17 +127,17 @@ partial class HomePage : Component<HomePageState>
                     ImageButton()
                         .Source(ApplicationTheme.IconEraser)
                         .Aspect(Aspect.AspectFit)
-                        .Padding(2)
+                        .Padding(4)
                         .OnClicked(EraseLastColor)
-                        .Background(ApplicationTheme.Black)
+                        .Background(ApplicationTheme.Gray900)
                         .HeightRequest(36)
                         .WidthRequest(36)
                         .CornerRadius(18)
                         .BorderWidth(3)
-                        .BorderColor(ApplicationTheme.Gray950)
+                        .BorderColor(ApplicationTheme.Black)
                 )
                 .StrokeThickness(3)
-                .Stroke(ApplicationTheme.Black)
+                .Stroke(ApplicationTheme.Gray600)
                 .StrokeShape(RoundRectangle().CornerRadius(20))
                 .Background(ApplicationTheme.OffBlack)
                 .HeightRequest(40)
@@ -173,14 +180,14 @@ partial class HomePage : Component<HomePageState>
                         .CornerRadius(18)
                         .BorderWidth(3)
                         .BorderColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                            ApplicationTheme.Primary : ApplicationTheme.Gray950)
+                            ApplicationTheme.Primary : ApplicationTheme.Black)
                         .OnClicked(SubmitGuess)
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
-                        .BackgroundColor(ApplicationTheme.Black)
+                        .BackgroundColor(ApplicationTheme.Gray900)
                 )
                     .StrokeThickness(3)
                     .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                        ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Black)
+                        ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Gray600)
                     .StrokeShape(RoundRectangle().CornerRadius(20))
                     .Background(ApplicationTheme.OffBlack)
                     .HeightRequest(40)
@@ -198,7 +205,7 @@ partial class HomePage : Component<HomePageState>
                     .VStart()
                     .WithAnimation(duration: 800, easing: Easing.CubicInOut)
                 : // For non-current rows and medium difficulty, show circular indicator if there are results                
-                (!isCurrentRow && isPastRow && State.DifficultyLevel == 1 ?
+                (!isCurrentRow && isPastRow && Props.DifficultyLevel == 1 ?
                     Border(RenderCircularIndicator(guessIndex))
                         .HeightRequest(40)
                         .WidthRequest(40)
@@ -224,7 +231,7 @@ partial class HomePage : Component<HomePageState>
         bool isActiveAnimatingIndicator = isAnimatingThisRow && pegIndex == State.AnimatingResultsIndex;
 
         // Determine if we should show position indicators based on difficulty level
-        bool showPositionIndicators = State.DifficultyLevel == 0;
+        bool showPositionIndicators = Props.DifficultyLevel == 0;
 
         return VStack(spacing: 2,
             // Main peg circle
@@ -570,6 +577,23 @@ partial class HomePage : Component<HomePageState>
         });
     }
 
+    private void RestartGame(int difficulty)
+    {
+        Props.DifficultyLevel = difficulty; // Set the difficulty level in props
+        SetState(s =>
+        {
+            s.GameOver = false;
+            s.GameWon = false;
+            s.PreviousGuesses = new List<List<Color?>>();
+            s.GuessResults = new List<List<GuessResult>>();
+            s.CurrentGuess = new List<Color?>();
+            // s.MaxAttempts and s.MaxCodeLength are readonly, so we can't change them here
+            // Instead, use difficulty to control behavior elsewhere if needed
+            // Store difficulty in Props if you want to persist it
+        });
+        // Optionally, you could trigger a navigation or re-mount with new props if you want to fully reset difficulty
+    }
+
     private VisualNode RenderGameOverOverlay()
     {
         return Grid(
@@ -618,20 +642,32 @@ partial class HomePage : Component<HomePageState>
                         .HCenter()
                     ) : null,
 
-                // Play again button with arcade style
-                Button("PLAY AGAIN")
-                    .OnClicked(NewGame)
-                    .BackgroundColor(State.GameWon ?
-                        ApplicationTheme.GameGreen : // Green for win
-                        ApplicationTheme.GameRed)    // Red for loss
-                    .TextColor(ApplicationTheme.White)
-                    .FontFamily("monospace")
-                    .FontSize(20)
-                    .FontAttributes(FontAttributes.Bold)
-                    .HeightRequest(60)
-                    .WidthRequest(200)
-                    .BorderWidth(4)
-                    .BorderColor(ApplicationTheme.Gray400)
+                // Play again buttons with difficulty selection
+                HStack(spacing: 20,
+                    Button("EASY")
+                        .OnClicked(() => RestartGame(0))
+                        .BackgroundColor(ApplicationTheme.GameGreen)
+                        .TextColor(ApplicationTheme.White)
+                        .FontFamily("monospace")
+                        .FontSize(20)
+                        .FontAttributes(FontAttributes.Bold)
+                        .HeightRequest(60)
+                        .WidthRequest(120)
+                        .BorderWidth(4)
+                        .BorderColor(ApplicationTheme.Gray400),
+                    Button("DIFFICULT")
+                        .OnClicked(() => RestartGame(1))
+                        .BackgroundColor(ApplicationTheme.GameRed)
+                        .TextColor(ApplicationTheme.White)
+                        .FontFamily("monospace")
+                        .FontSize(20)
+                        .FontAttributes(FontAttributes.Bold)
+                        .HeightRequest(60)
+                        .WidthRequest(160)
+                        .BorderWidth(4)
+                        .BorderColor(ApplicationTheme.Gray400)
+                )
+                .HCenter()
             )
             .Center()
         )
