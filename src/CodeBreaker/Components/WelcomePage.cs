@@ -23,9 +23,9 @@ public partial class WelcomePage : Component
                 Label("CODE BREAKER")
                     .FontSize(36)
                     .FontAttributes(FontAttributes.Bold)
-                    .TextColor(ApplicationTheme.Gray900)
+                    .TextColor(ApplicationTheme.Gray600)
                     .FontFamily("monospace")
-                    .HCenter()
+                    .Center()
                     .GridRow(2),
 
                 // Buttons
