@@ -1,5 +1,4 @@
-namespace CodeBreaker.Components;
-
+// filepath: /Users/davidortinau/work/dotnet-codebreaker/src/CodeBreaker/Components/HomePage.cs
 using Microsoft.Maui.Graphics;
 using System;
 using System.Collections.Generic;
@@ -7,6 +6,8 @@ using System.Linq;
 using MauiReactor;
 using MauiReactor.Shapes;
 using CodeBreaker.Resources.Styles;
+
+namespace CodeBreaker.Components;
 
 class HomePageState
 {
@@ -16,9 +17,10 @@ class HomePageState
     public List<Color?> CurrentGuess { get; set; } = new();
     public int MaxAttempts { get; } = 7;
     public int MaxCodeLength { get; } = 5;
+    public int DifficultyLevel { get; set; } = 1; // 0 = Easy (show indicators), 1 = Medium (show circular indicator)
     public bool GameOver { get; set; }
     public bool GameWon { get; set; }
-    
+
     // Animation properties
     public bool IsAnimatingResults { get; set; } = false;
     public int AnimatingResultsIndex { get; set; } = -1;
@@ -100,6 +102,7 @@ partial class HomePage : Component<HomePageState>
         .RowSpacing(12)
         .Margin(15);
     }
+
     private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
     {
         // Don't allow advancing to next row while animation is playing
@@ -109,7 +112,7 @@ partial class HomePage : Component<HomePageState>
 
         return Grid(
             rows: new[] { new RowDefinition(GridLength.Star) },
-            columns: new[] { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            columns: new[] { new ColumnDefinition(40), new ColumnDefinition(GridLength.Star), new ColumnDefinition(40) },
 
             // Left side - Erase button (only for current row)
             isCurrentRow ?
@@ -155,11 +158,9 @@ partial class HomePage : Component<HomePageState>
                     return RenderPegSlot(pegColor, isPastRow, columnIndex, guessIndex);
                 }).ToArray()
             )
-            .VCenter()
-            .HCenter()
             .GridColumn(1),
 
-            // Right side - Key button (only for current row)
+            // Right side - Key button or circular indicator
             isCurrentRow ?
                 Border(
                     ImageButton()
@@ -177,29 +178,38 @@ partial class HomePage : Component<HomePageState>
                         .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
                         .BackgroundColor(ApplicationTheme.Black)
                 )
-                .StrokeThickness(3)
-                .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                    ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Black)
-                .StrokeShape(RoundRectangle().CornerRadius(20))
-                .Background(ApplicationTheme.OffBlack)
-                .HeightRequest(40)
-                .WidthRequest(40)
-                .Margin(24, 0, 0, 0).Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                    new Shadow()
-                        .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
-                        .Offset(0, 0)
-                        .Radius(8) :
-                    new Shadow()
-                        .Brush(new SolidColorBrush(Colors.Transparent))
-                        .Radius(0))
-                .Scale(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ? 1.1 : 1.0)
-                .GridColumn(2)
-                .VStart()
-                .WithAnimation(duration: 800, easing: Easing.CubicInOut)
-                : null
+                    .StrokeThickness(3)
+                    .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                        ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Black)
+                    .StrokeShape(RoundRectangle().CornerRadius(20))
+                    .Background(ApplicationTheme.OffBlack)
+                    .HeightRequest(40)
+                    .WidthRequest(40)
+                    .Margin(24, 0, 0, 0)
+                    .Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                        Shadow()
+                            .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
+                            .Offset(0, 0)
+                            .Radius(8) :
+                        Shadow()
+                            .Brush(new SolidColorBrush(Colors.Transparent))
+                            .Radius(0))
+                    .GridColumn(2)
+                    .VStart()
+                    .WithAnimation(duration: 800, easing: Easing.CubicInOut)
+                : // For non-current rows and medium difficulty, show circular indicator if there are results                
+                (!isCurrentRow && isPastRow && State.DifficultyLevel == 1 ?
+                    Border(RenderCircularIndicator(guessIndex))
+                        .HeightRequest(40)
+                        .WidthRequest(40)
+                        .Margin(24, 0, 0, 0)
+                        .GridColumn(2)
+                        .VStart()
+                    : null)
         )
         .GridRow(rowIndex);
     }
+
     private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
         // Check if this is the current row and the next peg to be filled
@@ -211,7 +221,11 @@ partial class HomePage : Component<HomePageState>
         bool shouldShowIndicator = showResults && (!isAnimatingThisRow || pegIndex <= State.AnimatingResultsIndex);
 
         // Is this the currently animating indicator?
-        bool isActiveAnimatingIndicator = isAnimatingThisRow && pegIndex == State.AnimatingResultsIndex;        // Use a fixed height container to prevent shifting
+        bool isActiveAnimatingIndicator = isAnimatingThisRow && pegIndex == State.AnimatingResultsIndex;
+
+        // Determine if we should show position indicators based on difficulty level
+        bool showPositionIndicators = State.DifficultyLevel == 0;
+
         return VStack(spacing: 2,
             // Main peg circle
             Border().StrokeThickness(isNextTargetPeg ? 3 : 2)
@@ -227,8 +241,8 @@ partial class HomePage : Component<HomePageState>
                 rows: new[] { new RowDefinition(GridLength.Auto) },
                 columns: new[] { new ColumnDefinition(GridLength.Star) },
 
-                // Result indicator (only visible when needed)
-                shouldShowIndicator ?
+                // Result indicator (only visible when needed and difficulty is Easy)
+                showPositionIndicators && shouldShowIndicator ?
                 Border().StrokeThickness(0)
                     .Background(GetResultColor(State.GuessResults[guessIndex][pegIndex]))
                     .HeightRequest(6)
@@ -241,6 +255,7 @@ partial class HomePage : Component<HomePageState>
             .Margin(0, 4)
         );
     }
+
     private Color GetResultColor(GuessResult result)
     {
         return result switch
@@ -250,6 +265,64 @@ partial class HomePage : Component<HomePageState>
             _ => ApplicationTheme.Gray600                            // Dark gray for incorrect
         };
     }
+
+    private VisualNode RenderCircularIndicator(int guessIndex)
+    {
+        // Get the guess results for this row
+        var results = State.GuessResults[guessIndex];
+
+        // Count the number of correct, wrong position and incorrect results
+        int correctCount = results.Count(r => r == GuessResult.Correct);
+        int wrongPosCount = results.Count(r => r == GuessResult.WrongPosition);
+
+        // Use dots instead of circular indicator
+        return GraphicsView()
+            .HeightRequest(40)
+            .WidthRequest(40)
+            .BackgroundColor(ApplicationTheme.OffBlack)
+            .OnDraw((canvas, dirtyRect) =>
+            {
+                // Draw a border around the dots
+                canvas.StrokeColor = ApplicationTheme.Gray400;
+                canvas.StrokeSize = 2;
+                float containerRadius = Math.Min(dirtyRect.Width, dirtyRect.Height) / 2 - 1;
+                // canvas.DrawCircle(dirtyRect.Center.X, dirtyRect.Center.Y, containerRadius);
+
+                // Calculate dot positions - arrange in a circle
+                int dotsCount = State.MaxCodeLength;
+                float dotRadius = 4; // Size of each dot
+                float dotCircleRadius = containerRadius - dotRadius - 2; // Radius for positioning dots
+
+                // Draw the dots
+                for (int i = 0; i < dotsCount; i++)
+                {
+                    // Calculate position on the circle
+                    float angle = (float)(2 * Math.PI * i / dotsCount);
+                    float x = dirtyRect.Center.X + dotCircleRadius * (float)Math.Cos(angle);
+                    float y = dirtyRect.Center.Y + dotCircleRadius * (float)Math.Sin(angle);
+
+                    // Determine dot color based on results
+                    Color dotColor;
+                    if (i < correctCount)
+                    {
+                        dotColor = ApplicationTheme.GameGreen; // Correct
+                    }
+                    else if (i < correctCount + wrongPosCount)
+                    {
+                        dotColor = Color.FromRgb(0xFF, 0x85, 0x00); // Wrong position
+                    }
+                    else
+                    {
+                        dotColor = ApplicationTheme.Gray600; // Incorrect
+                    }
+
+                    // Draw the dot
+                    canvas.FillColor = dotColor;
+                    canvas.FillCircle(x, y, dotRadius);
+                }
+            });
+    }
+
     private VisualNode RenderControls()
     {
         return Grid(
@@ -261,7 +334,8 @@ partial class HomePage : Component<HomePageState>
 
                 // FIRST ROW - First 4 color buttons
                 HStack(spacing: 12,
-                    Enumerable.Range(0, 4).Select(colorIndex =>                        // Create a layered effect for arcade button look
+                    Enumerable.Range(0, 4).Select(colorIndex =>
+                        // Create a layered effect for arcade button look
                         Border(
                             Button() // The actual button with color
                                 .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
@@ -340,6 +414,7 @@ partial class HomePage : Component<HomePageState>
             SetState(s => s.CurrentGuess.RemoveAt(s.CurrentGuess.Count - 1));
         }
     }
+
     private void SubmitGuess()
     {
         if (State.GameOver || State.CurrentGuess.Count < State.MaxCodeLength) return;
@@ -389,7 +464,8 @@ partial class HomePage : Component<HomePageState>
                 }
             }
 
-            s.GuessResults.Add(results);            // Immediately set animation flags to prevent the next row from becoming active
+            s.GuessResults.Add(results);
+            // Immediately set animation flags to prevent the next row from becoming active
             s.IsAnimatingResults = true;
             s.AnimatingResultsIndex = -1; // Will be incremented to 0 in animation
             s.AnimatingGuessIndex = s.PreviousGuesses.Count - 1;
@@ -401,50 +477,52 @@ partial class HomePage : Component<HomePageState>
 
         // Start animation immediately - no delay needed since we're using a timer
         MauiControls.Application.Current?.Dispatcher.Dispatch(AnimateNextIndicator);
-    }    private void AnimateNextIndicator()
+    }
+
+    private void AnimateNextIndicator()
     {
         // Stop animation if not in animation mode
         if (!State.IsAnimatingResults)
             return;
-            
+
         // Start a fast timer that will animate each indicator
         // This approach uses a single timer for all animations rather than
         // nested Task.Delay calls which can cause performance issues
-        
+
         // Create timer with a very short interval for performance
         var timer = new System.Timers.Timer(120);
         timer.AutoReset = true;
-        
-        timer.Elapsed += (sender, e) => 
+
+        timer.Elapsed += (sender, e) =>
         {
-            MauiControls.Application.Current?.Dispatcher.Dispatch(() => 
+            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
             {
                 // Update the animation index
-                SetState(s => 
+                SetState(s =>
                 {
                     s.AnimatingResultsIndex++;
-                    
+
                     // Check if we've completed all indicators
                     if (s.AnimatingResultsIndex >= s.MaxCodeLength)
                     {
                         // Stop the timer
                         timer.Stop();
                         timer.Dispose();
-                        
+
                         // Set final state
                         var results = s.GuessResults[s.AnimatingGuessIndex];
                         bool isWon = results.All(r => r == GuessResult.Correct);
-                        
+
                         s.IsRevealComplete = true;
                         s.GameWon = isWon;
                         s.GameOver = isWon || s.PreviousGuesses.Count >= s.MaxAttempts;
-                        
+
                         // Schedule a final update to reset animation state after a short delay
-                        Task.Delay(250).ContinueWith(_ => 
+                        Task.Delay(250).ContinueWith(_ =>
                         {
-                            MauiControls.Application.Current?.Dispatcher.Dispatch(() => 
+                            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
                             {
-                                SetState(finalState => 
+                                SetState(finalState =>
                                 {
                                     finalState.IsAnimatingResults = false;
                                     finalState.AnimatingResultsIndex = -1;
@@ -457,7 +535,7 @@ partial class HomePage : Component<HomePageState>
                 });
             });
         };
-        
+
         // Start the timer
         timer.Start();
     }
@@ -509,7 +587,9 @@ partial class HomePage : Component<HomePageState>
                         .HCenter()
                 )
                 .Background(new RadialGradientBrush(new GradientStopCollection
-                {                    new GradientStop(State.GameWon ?                        ApplicationTheme.Primary.WithLuminosity(0.6f) : // Darker green center for win
+                {
+                    new GradientStop(State.GameWon ?
+                        ApplicationTheme.Primary.WithLuminosity(0.6f) : // Darker green center for win
                         ApplicationTheme.GameDarkRed,  // Darker red center for loss
                         0.0f),
                     new GradientStop(ApplicationTheme.Black.WithAlpha(0.0f), 1.0f) // Transparent outer edge
@@ -536,7 +616,9 @@ partial class HomePage : Component<HomePageState>
                             ).ToArray()
                         )
                         .HCenter()
-                    ) : null,                // Play again button with arcade style
+                    ) : null,
+
+                // Play again button with arcade style
                 Button("PLAY AGAIN")
                     .OnClicked(NewGame)
                     .BackgroundColor(State.GameWon ?
@@ -555,6 +637,5 @@ partial class HomePage : Component<HomePageState>
         )
         .HFill()
         .VFill();
-    }    // Using the WithLuminosity, WithAlpha, WithSaturation, or WithHue extension methods directly
-    // instead of wrapper methods for better maintainability
+    }
 }
