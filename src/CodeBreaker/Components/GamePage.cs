@@ -1,30 +1,78 @@
-// filepath: /Users/davidortinau/work/dotnet-codebreaker/src/CodeBreaker/Components/HomePage.cs
-using Microsoft.Maui.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using MauiReactor;
 using MauiReactor.Shapes;
 using CodeBreaker.Resources.Styles;
+using System.Threading.Tasks;
 
 namespace CodeBreaker.Components;
 
-class GamePageState
+/// <summary>
+/// Represents the state for the game page.
+/// </summary>
+internal class GamePageState
 {
+    /// <summary>
+    /// Gets or sets the secret code that the player is trying to guess.
+    /// </summary>
     public List<Color> SecretCode { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the list of previous guesses made by the player.
+    /// </summary>
     public List<List<Color?>> PreviousGuesses { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the list of results for each guess.
+    /// </summary>
     public List<List<GuessResult>> GuessResults { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the current guess being built by the player.
+    /// </summary>
     public List<Color?> CurrentGuess { get; set; } = new();
+
+    /// <summary>
+    /// Gets the maximum number of attempts allowed.
+    /// </summary>
     public int MaxAttempts { get; } = 7;
+
+    /// <summary>
+    /// Gets the length of the code to guess.
+    /// </summary>
     public int MaxCodeLength { get; } = 5;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the game is over.
+    /// </summary>
     public bool GameOver { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the player has won the game.
+    /// </summary>
     public bool GameWon { get; set; }
 
     // Animation properties
-    public bool IsAnimatingResults { get; set; } = false;
+    /// <summary>
+    /// Gets or sets a value indicating whether results animation is in progress.
+    /// </summary>
+    public bool IsAnimatingResults { get; set; }
+
+    /// <summary>
+    /// Gets or sets the index of the current result being animated.
+    /// </summary>
     public int AnimatingResultsIndex { get; set; } = -1;
+
+    /// <summary>
+    /// Gets or sets the index of the guess being animated.
+    /// </summary>
     public int AnimatingGuessIndex { get; set; } = -1;
-    public bool IsRevealComplete { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the reveal animation is complete.
+    /// </summary>
+    public bool IsRevealComplete { get; set; }
+
+    /// <summary>
+    /// Gets the list of available colors for the game.
+    /// </summary>
     public List<Color> AvailableColors { get; } = new()
     {
         // Expanded Atari 2600 palette colors
@@ -38,21 +86,59 @@ class GamePageState
     };
 
     // Timer properties
+    /// <summary>
+    /// Gets or sets the number of seconds remaining in the game.
+    /// </summary>
     public int TimeLeftSeconds { get; set; } = 120;
-    public bool TimerRunning { get; set; } = false;
-    public bool TimerFlash { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the timer is running.
+    /// </summary>
+    public bool TimerRunning { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the timer should flash.
+    /// </summary>
+    public bool TimerFlash { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timer used for the game countdown.
+    /// </summary>
     public System.Timers.Timer? Timer { get; set; }
 
     // Help overlay property
-    public bool ShowHelp { get; set; } = false;
+    /// <summary>
+    /// Gets or sets a value indicating whether the help overlay should be shown.
+    /// </summary>
+    public bool ShowHelp { get; set; }
 
     // Countdown overlay properties
+    /// <summary>
+    /// Gets or sets a value indicating whether the countdown overlay should be shown.
+    /// </summary>
     public bool ShowCountdown { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the current value of the countdown.
+    /// </summary>
     public int CountdownValue { get; set; } = 3;
 
     // Paused overlay property
-    public bool ShowPaused { get; set; } = false;
+    /// <summary>
+    /// Gets or sets a value indicating whether the pause overlay should be shown.
+    /// </summary>
+    public bool ShowPaused { get; set; }
+    
+    // Game over UI display property
+    /// <summary>
+    /// Gets or sets a value indicating whether the game over UI should be shown.
+    /// This property is used to add a delay before showing the game over UI.
+    /// </summary>
+    public bool ShowGameOverUI { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GamePageState"/> class.
+    /// </summary>
     public GamePageState()
     {
         GenerateNewCode();
@@ -73,29 +159,45 @@ class GamePageState
     }
 }
 
-// Result of a guess for a single position
+/// <summary>
+/// Result of a guess for a single position.
+/// </summary>
 public enum GuessResult
 {
-    Incorrect,      // Wrong color
-    WrongPosition,  // Right color, wrong position
-    Correct         // Right color, right position
+    /// <summary>
+    /// Wrong color.
+    /// </summary>
+    Incorrect,
+    
+    /// <summary>
+    /// Right color, wrong position.
+    /// </summary>
+    WrongPosition,
+    
+    /// <summary>
+    /// Right color, right position.
+    /// </summary>
+    Correct
 }
 
-partial class GamePage : Component<GamePageState, GameProps>
+/// <summary>
+/// Represents the main game page component.
+/// </summary>
+internal partial class GamePage : Component<GamePageState, GameProps>
 {
-
     protected override void OnPropsChanged()
     {
-        
         base.OnPropsChanged();
     }
 
     protected override void OnMounted()
     {
-        SetState(s => {
+        SetState(s => 
+        {
             s.ShowCountdown = true;
             s.CountdownValue = 3;
         });
+        
         StartCountdown();
         base.OnMounted();
     }
@@ -120,6 +222,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                 }
             });
         };
+        
         countdownTimer.Start();
     }
 
@@ -153,29 +256,33 @@ partial class GamePage : Component<GamePageState, GameProps>
             .Center()
         )
         .Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.92f)))
-        .GridRowSpan(3).HFill().VFill().ZIndex(150);
+        .GridRowSpan(3)
+        .HFill()
+        .VFill()
+        .ZIndex(150);
     }
 
     public override VisualNode Render()
         => ContentPage("CODE BREAKER",
-            Grid(rows: "Auto,*,Auto",
+            Grid(
+                rows: "Auto,*,Auto",
                 columns: "*",
-                    // Timer display
-                    RenderTimer(),
-                    // Help button
-                    RenderHelpButton(),
-                    // Main game content
-                    RenderGameBoard(),
-                    // Controls section
-                    RenderControls(),
-                    // Game over overlay (conditionally shown)
-                    State.GameOver ? RenderGameOverOverlay() : null,
-                    // Help overlay (conditionally shown)
-                    State.ShowHelp ? RenderHelpOverlay() : null,
-                    // Countdown overlay (conditionally shown)
-                    State.ShowCountdown ? RenderCountdownOverlay() : null,
-                    // Paused overlay (conditionally shown)
-                    State.ShowPaused ? RenderPausedOverlay() : null
+                // Timer display
+                RenderTimer(),
+                // Help button
+                RenderHelpButton(),
+                // Main game content
+                RenderGameBoard(),
+                // Controls section
+                RenderControls(),
+                // Game over overlay (conditionally shown)
+                State.ShowGameOverUI ? RenderGameOverOverlay() : null,
+                // Help overlay (conditionally shown)
+                State.ShowHelp ? RenderHelpOverlay() : null,
+                // Countdown overlay (conditionally shown)
+                State.ShowCountdown ? RenderCountdownOverlay() : null,
+                // Paused overlay (conditionally shown)
+                State.ShowPaused ? RenderPausedOverlay() : null
             )
         )
         .HasNavigationBar(false)
@@ -184,7 +291,10 @@ partial class GamePage : Component<GamePageState, GameProps>
     private VisualNode RenderCountdownOverlay()
     {
         return Grid(
-            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f))).HFill().VFill(),
+            Border()
+                .Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
+                .HFill()
+                .VFill(),
             Label(State.CountdownValue > 0 ? State.CountdownValue.ToString() : "GO!")
                 .FontFamily("monospace")
                 .FontSize(96)
@@ -192,7 +302,11 @@ partial class GamePage : Component<GamePageState, GameProps>
                 .TextColor(ApplicationTheme.GameGreen)
                 .HCenter()
                 .VCenter()
-        ).HFill().VFill().ZIndex(200).GridRowSpan(3);
+        )
+        .HFill()
+        .VFill()
+        .ZIndex(200)
+        .GridRowSpan(3);
     }
 
     private VisualNode RenderHelpButton()
@@ -206,7 +320,8 @@ partial class GamePage : Component<GamePageState, GameProps>
             .VStart()
             .Margin(0, 12, 18, 0)
             .ZIndex(10)
-            .OnClicked(() => {
+            .OnClicked(() => 
+            {
                 SetState(s => s.ShowHelp = true);
                 PauseTimer();
             });
@@ -220,6 +335,7 @@ partial class GamePage : Component<GamePageState, GameProps>
         var color = isLast10 ? ApplicationTheme.GameRed : ApplicationTheme.Gray100;
         var fontWeight = FontAttributes.Bold;
         var opacity = isLast10 && State.TimerFlash ? 0.3 : 1.0;
+        
         return HStack(
             Label($"{min:00}:{sec:00}")
                 .FontSize(28)
@@ -236,22 +352,26 @@ partial class GamePage : Component<GamePageState, GameProps>
                     PauseTimer();
                 })
         )
-            .Spacing(12)
-            .Opacity(opacity)
-            .Margin(18, 12, 0, 0)
-            .HStart()
-            .VStart()
-            .ZIndex(10);
+        .Spacing(12)
+        .Opacity(opacity)
+        .Margin(18, 12, 0, 0)
+        .HStart()
+        .VStart()
+        .ZIndex(10);
     }
 
     private VisualNode RenderGameBoard()
     {
         return Grid(
-            rows: Enumerable.Range(0, State.MaxAttempts).Select(_ => new RowDefinition(GridLength.Star)).ToArray(),
-            columns: Enumerable.Range(0, 1).Select(_ => new ColumnDefinition(GridLength.Star)).ToArray(),
-            Enumerable.Range(0, State.MaxAttempts).Select(rowIndex =>
-                RenderGuessRow(rowIndex, State.MaxAttempts - rowIndex - 1)
-            ).ToArray()
+            rows: Enumerable.Range(0, State.MaxAttempts)
+                .Select(_ => new RowDefinition(GridLength.Star))
+                .ToArray(),
+            columns: Enumerable.Range(0, 1)
+                .Select(_ => new ColumnDefinition(GridLength.Star))
+                .ToArray(),
+            Enumerable.Range(0, State.MaxAttempts)
+                .Select(rowIndex => RenderGuessRow(rowIndex, State.MaxAttempts - rowIndex - 1))
+                .ToArray()
         )
         .HCenter()
         .VCenter()
@@ -262,17 +382,22 @@ partial class GamePage : Component<GamePageState, GameProps>
 
     private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
     {
-        // Don't allow advancing to next row while animation is playing
-        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count && !State.IsAnimatingResults;
+        // Don't allow advancing to next row while animation is playing or game is over
+        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count && !State.IsAnimatingResults && !State.GameOver;
         bool isPastRow = guessIndex < State.PreviousGuesses.Count;
         bool isFutureRow = guessIndex > State.PreviousGuesses.Count;
 
         return Grid(
             rows: new[] { new RowDefinition(GridLength.Star) },
-            columns: new[] { new ColumnDefinition(40), new ColumnDefinition(GridLength.Star), new ColumnDefinition(40) },
+            columns: new[] { 
+                new ColumnDefinition(40), 
+                new ColumnDefinition(GridLength.Star), 
+                new ColumnDefinition(40) 
+            },
 
             // Center - Pegs
-            HStack(spacing: 12,
+            HStack(
+                spacing: 12,
                 Enumerable.Range(0, State.MaxCodeLength).Select(columnIndex =>
                 {
                     Color? pegColor = null;
@@ -307,7 +432,7 @@ partial class GamePage : Component<GamePageState, GameProps>
     private VisualNode RenderPegSlot(Color? pegColor, bool showResults, int pegIndex, int guessIndex)
     {
         // Check if this is the current row and the next peg to be filled
-        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count && !State.IsAnimatingResults;
+        bool isCurrentRow = guessIndex == State.PreviousGuesses.Count && !State.IsAnimatingResults && !State.GameOver;
         bool isNextTargetPeg = isCurrentRow && pegIndex == State.CurrentGuess.Count;
 
         // Check if this indicator should be showing during animation
@@ -320,9 +445,11 @@ partial class GamePage : Component<GamePageState, GameProps>
         // Determine if we should show position indicators based on difficulty level
         bool showPositionIndicators = Props.DifficultyLevel == 0;
 
-        return VStack(spacing: 2,
+        return VStack(
+            spacing: 2,
             // Main peg circle
-            Border().StrokeThickness(isNextTargetPeg ? 3 : 2)
+            Border()
+                .StrokeThickness(isNextTargetPeg ? 3 : 2)
                 .Stroke(pegColor != null ?
                     pegColor.WithLuminosity(0.25f) :
                     (isNextTargetPeg ? ApplicationTheme.Gray200 : ApplicationTheme.Gray400))
@@ -337,7 +464,8 @@ partial class GamePage : Component<GamePageState, GameProps>
 
                 // Result indicator (only visible when needed and difficulty is Easy)
                 showPositionIndicators && shouldShowIndicator ?
-                Border().StrokeThickness(0)
+                Border()
+                    .StrokeThickness(0)
                     .Background(GetResultColor(State.GuessResults[guessIndex][pegIndex]))
                     .HeightRequest(6)
                     .HFill()
@@ -354,9 +482,9 @@ partial class GamePage : Component<GamePageState, GameProps>
     {
         return result switch
         {
-            GuessResult.Correct => ApplicationTheme.GameGreen,       // Vivid Green for correct position
+            GuessResult.Correct => ApplicationTheme.GameGreen,      // Vivid Green for correct position
             GuessResult.WrongPosition => Color.FromRgb(0xFF, 0x85, 0x00), // Bright Orange for wrong position
-            _ => ApplicationTheme.Gray600                            // Dark gray for incorrect
+            _ => ApplicationTheme.Gray600                           // Dark gray for incorrect
         };
     }
 
@@ -427,7 +555,8 @@ partial class GamePage : Component<GamePageState, GameProps>
                 columns: "*",
 
                 // FIRST ROW - First 4 color buttons
-                HStack(spacing: 12,
+                HStack(
+                    spacing: 12,
                     Enumerable.Range(0, 4).Select(colorIndex =>
                         // Create a layered effect for arcade button look
                         Border(
@@ -439,6 +568,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                                 .BorderWidth(3) // Nice thick border for arcade style
                                 .BorderColor(State.AvailableColors[colorIndex])
                                 .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
+                                .IsEnabled(!State.GameOver)
                         ) // Outer border - acts as button bezel
                             .StrokeThickness(3)
                             .Stroke(State.AvailableColors[colorIndex])
@@ -452,8 +582,10 @@ partial class GamePage : Component<GamePageState, GameProps>
                 .HCenter(),
 
                 // SECOND ROW - Last 3 color buttons
-                HStack(spacing: 12,
-                    Enumerable.Range(4, 3).Select(colorIndex => Border(
+                HStack(
+                    spacing: 12,
+                    Enumerable.Range(4, 3).Select(colorIndex => 
+                        Border(
                             Button()
                                 .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
                                 .HeightRequest(44)
@@ -462,21 +594,21 @@ partial class GamePage : Component<GamePageState, GameProps>
                                 .BorderWidth(3)
                                 .BorderColor(State.AvailableColors[colorIndex])
                                 .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
+                                .IsEnabled(!State.GameOver)
                         )
-                            .StrokeThickness(3)
-                            .Stroke(State.AvailableColors[colorIndex])
-                            .StrokeShape(RoundRectangle().CornerRadius(32))
-                            .Background(ApplicationTheme.OffBlack)
-                            .HeightRequest(54)
-                            .WidthRequest(54)
+                        .StrokeThickness(3)
+                        .Stroke(State.AvailableColors[colorIndex])
+                        .StrokeShape(RoundRectangle().CornerRadius(32))
+                        .Background(ApplicationTheme.OffBlack)
+                        .HeightRequest(54)
+                        .WidthRequest(54)
                     ).ToArray()
-                    
                 )
                 .GridRow(1)
                 .HCenter()
             )
-                .GridRow(1)
-                .Margin(30, 30),
+            .GridRow(1)
+            .Margin(30, 30),
 
             BoxView()
                 .GridRow(0)
@@ -486,20 +618,15 @@ partial class GamePage : Component<GamePageState, GameProps>
 
             RenderKeyButton(),
             RenderEraseButton()
-
         )
         .GridRow(2)
-        .VEnd()
-        ;
+        .VEnd();
     }
 
     private VisualNode RenderEraseButton() =>
         VStack(
             Border(
-
                 Button()
-                    // .Source(ApplicationTheme.IconEraser)
-                    // .Aspect(Aspect.AspectFit)
                     .Padding(4)
                     .OnClicked(EraseLastColor)
                     .Background(ApplicationTheme.Gray900)
@@ -507,31 +634,35 @@ partial class GamePage : Component<GamePageState, GameProps>
                     .WidthRequest(44)
                     .CornerRadius(22)
                     .BorderWidth(3)
-                    .BorderColor(ApplicationTheme.Black).Center()
+                    .BorderColor(ApplicationTheme.Black)
+                    .Center()
+                    .IsEnabled(!State.GameOver)
             )
-
             .StrokeThickness(3)
             .Stroke(ApplicationTheme.Gray600)
             .StrokeShape(RoundRectangle().CornerRadius(32))
             .Background(ApplicationTheme.OffBlack)
             .HeightRequest(54)
             .WidthRequest(54),
-            Label("Erase").Center().TextColor(ApplicationTheme.Gray100).FontSize(12).FontAttributes(FontAttributes.Bold).FontFamily("monospace")
+            
+            Label("Erase")
+                .Center()
+                .TextColor(ApplicationTheme.Gray100)
+                .FontSize(12)
+                .FontAttributes(FontAttributes.Bold)
+                .FontFamily("monospace")
         )
-            .Spacing(8)
-            .Margin(24)
-            .GridRow(1)
-            .HStart()
-            .VEnd();
+        .Spacing(8)
+        .Margin(24)
+        .GridRow(1)
+        .HStart()
+        .VEnd();
 
 
     private VisualNode RenderKeyButton() =>
         VStack(
             Border(
                 Button()
-                    // .Source(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                    //     ApplicationTheme.IconKey : ApplicationTheme.IconKeyDisabled)
-                    // .Aspect(Aspect.AspectFit)
                     .Padding(2)
                     .HeightRequest(44)
                     .WidthRequest(44)
@@ -543,36 +674,45 @@ partial class GamePage : Component<GamePageState, GameProps>
                     .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
                     .BackgroundColor(ApplicationTheme.Gray900)
             )
-                .StrokeThickness(3)
-                .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                    ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Gray600)
-                .StrokeShape(RoundRectangle().CornerRadius(32))
-                .Background(ApplicationTheme.OffBlack)
-                .HeightRequest(54)
-                .WidthRequest(54)
+            .StrokeThickness(3)
+            .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Gray600)
+            .StrokeShape(RoundRectangle().CornerRadius(32))
+            .Background(ApplicationTheme.OffBlack)
+            .HeightRequest(54)
+            .WidthRequest(54)
 
-                .Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                    Shadow()
-                        .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
-                        .Offset(0, 0)
-                        .Radius(8) :
-                    Shadow()
-                        .Brush(new SolidColorBrush(Colors.Transparent))
-                        .Radius(0))
-                .WithAnimation(duration: 800, easing: Easing.CubicInOut),
-            Label("Guess").Center().TextColor(ApplicationTheme.Gray100).FontSize(12).FontAttributes(FontAttributes.Bold).FontFamily("monospace")
-        ).Spacing(8)
-
-            .VEnd()
-            .HEnd()
-            .Margin(24)
-            .GridRow(1)
-            ;
+            .Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                Shadow()
+                    .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
+                    .Offset(0, 0)
+                    .Radius(8) :
+                Shadow()
+                    .Brush(new SolidColorBrush(Colors.Transparent))
+                    .Radius(0))
+            .WithAnimation(duration: 800, easing: Easing.CubicInOut),
+            
+            Label("Guess")
+                .Center()
+                .TextColor(ApplicationTheme.Gray100)
+                .FontSize(12)
+                .FontAttributes(FontAttributes.Bold)
+                .FontFamily("monospace")
+        )
+        .Spacing(8)
+        .VEnd()
+        .HEnd()
+        .Margin(24)
+        .GridRow(1)
+        ;
     
 
     private void AddColorToCurrent(Color color)
     {
-        if (State.GameOver) return;
+        if (State.GameOver)
+        {
+            return;
+        }
 
         if (State.CurrentGuess.Count < State.MaxCodeLength)
         {
@@ -582,7 +722,10 @@ partial class GamePage : Component<GamePageState, GameProps>
 
     private void EraseLastColor()
     {
-        if (State.GameOver) return;
+        if (State.GameOver)
+        {
+            return;
+        }
 
         if (State.CurrentGuess.Count > 0)
         {
@@ -592,7 +735,10 @@ partial class GamePage : Component<GamePageState, GameProps>
 
     private void SubmitGuess()
     {
-        if (State.GameOver || State.CurrentGuess.Count < State.MaxCodeLength) return;
+        if (State.GameOver || State.CurrentGuess.Count < State.MaxCodeLength)
+        {
+            return;
+        }
 
         // Initial state setup for results evaluation
         SetState(s =>
@@ -624,11 +770,17 @@ partial class GamePage : Component<GamePageState, GameProps>
             // Then check for color matches in wrong positions
             for (int i = 0; i < s.MaxCodeLength; i++)
             {
-                if (guessCopy[i] == null) continue; // Skip already matched
+                if (guessCopy[i] == null)
+                {
+                    continue; // Skip already matched
+                }
 
                 for (int j = 0; j < s.MaxCodeLength; j++)
                 {
-                    if (secretCodeCopy[j] == Color.FromArgb("Transparent")) continue; // Skip already matched
+                    if (secretCodeCopy[j] == Color.FromArgb("Transparent"))
+                    {
+                        continue; // Skip already matched
+                    }
 
                     if (ColorEquals(guessCopy[i]!, secretCodeCopy[j]))
                     {
@@ -664,7 +816,9 @@ partial class GamePage : Component<GamePageState, GameProps>
     {
         // Stop animation if not in animation mode
         if (!State.IsAnimatingResults)
+        {
             return;
+        }
 
         // Start a fast timer that will animate each indicator
         // This approach uses a single timer for all animations rather than
@@ -704,6 +858,18 @@ partial class GamePage : Component<GamePageState, GameProps>
                             StopTimer();
                         }
                         // If game is over (time out), timer is already stopped in timer logic
+
+                        // If the game is over, add a delay before showing the UI
+                        if (s.GameOver)
+                        {
+                            Task.Delay(500).ContinueWith(_ =>
+                            {
+                                MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
+                                {
+                                    SetState(finalState => finalState.ShowGameOverUI = true);
+                                });
+                            });
+                        }
 
                         // Schedule a final update to reset animation state after a short delay
                         Task.Delay(250).ContinueWith(_ =>
@@ -747,6 +913,7 @@ partial class GamePage : Component<GamePageState, GameProps>
             s.CurrentGuess = new List<Color?>();
             s.GameOver = false;
             s.GameWon = false;
+            s.ShowGameOverUI = false;
 
             // Generate new secret code
             Random rnd = new();
@@ -764,6 +931,7 @@ partial class GamePage : Component<GamePageState, GameProps>
         {
             s.GameOver = false;
             s.GameWon = false;
+            s.ShowGameOverUI = false;
             s.PreviousGuesses = new List<List<Color?>>();
             s.GuessResults = new List<List<GuessResult>>();
             s.CurrentGuess = new List<Color?>();
@@ -771,32 +939,41 @@ partial class GamePage : Component<GamePageState, GameProps>
             s.TimerRunning = false;
             s.TimerFlash = false;
         });
+        
         StartTimer();
     }
 
     private VisualNode RenderGameOverOverlay()
     {
+
+        
         return Grid(
             // Semi-transparent dark background
-            VStack(spacing: 30,
+            VStack(
+                spacing: 30,
                 // Game result text with glowing effect
-                Label(State.GameWon ? "YOU WIN!" : "GAME OVER").FontFamily("monospace")
-                        .FontSize(36)
-                        .FontAttributes(FontAttributes.Bold).TextColor(ApplicationTheme.White)
-                        .HCenter()
-                ,
+                Label(State.GameWon ? "YOU WIN!" : "GAME OVER")
+                    .FontFamily("monospace")
+                    .FontSize(36)
+                    .FontAttributes(FontAttributes.Bold)
+                    .TextColor(ApplicationTheme.White)
+                    .HCenter(),
 
                 // Show secret code if game is lost
                 !State.GameWon ?
-                    VStack(spacing: 10,
+                    VStack(
+                        spacing: 10,
                         Label("SECRET CODE:")
                             .FontFamily("monospace")
-                            .FontAttributes(FontAttributes.Bold).TextColor(ApplicationTheme.Gray100)
+                            .FontAttributes(FontAttributes.Bold)
+                            .TextColor(ApplicationTheme.Gray100)
                             .HCenter(),
 
-                        HStack(spacing: 8,
+                        HStack(
+                            spacing: 8,
                             Enumerable.Range(0, State.MaxCodeLength).Select(i =>
-                                Border().StrokeThickness(2)
+                                Border()
+                                    .StrokeThickness(2)
                                     .Stroke(ApplicationTheme.Gray400)
                                     .Background(State.SecretCode[i])
                                     .HeightRequest(40)
@@ -806,8 +983,17 @@ partial class GamePage : Component<GamePageState, GameProps>
                         .HCenter()
                     ) : null,
 
+                Label("Play Again")
+                    .FontFamily("monospace")
+                    .FontSize(28)
+                    .FontAttributes(FontAttributes.Bold)
+                    .TextColor(ApplicationTheme.White)
+                    .Margin(0,30,0,0)
+                    .HCenter(),
+
                 // Play again buttons with difficulty selection
-                HStack(spacing: 20,
+                HStack(
+                    spacing: 20,
                     Button("EASY")
                         .OnClicked(() => RestartGame(0))
                         .BackgroundColor(ApplicationTheme.GameGreen)
@@ -849,7 +1035,14 @@ partial class GamePage : Component<GamePageState, GameProps>
                     .TextColor(ApplicationTheme.GameGreen)
                     .HCenter(),
                 BoxView().HeightRequest(12),
-                Label("Your mission, should you choose to accept it:\n\n- Crack the secret color code before time runs out.\n- Each row is a guess. Tap colors to build your code, then tap the key to submit.\n- Green means a color is correct and in the right place. Orange means a color is correct but in the wrong place. Gray means it's not in the code.\n- You have limited attempts and only 2 minutes.\n- When the timer flashes red, time is almost up.\n- Choose your difficulty wisely, Agent.\n\nGood luck. This message will self-destruct in 2 minutes.")
+                Label("Your mission, should you choose to accept it:\n\n" +
+                     "- Crack the secret color code before time runs out.\n" +
+                     "- Each row is a guess. Tap colors to build your code, then tap the key to submit.\n" +
+                     "- Green means a color is correct and in the right place. Orange means a color is correct but in the wrong place. Gray means it's not in the code.\n" +
+                     "- You have limited attempts and only 2 minutes.\n" +
+                     "- When the timer flashes red, time is almost up.\n" +
+                     "- Choose your difficulty wisely, Agent.\n\n" +
+                     "Good luck. This message will self-destruct in 2 minutes.")
                     .FontFamily("monospace")
                     .FontSize(18)
                     .TextColor(ApplicationTheme.Gray100)
@@ -874,7 +1067,10 @@ partial class GamePage : Component<GamePageState, GameProps>
             .Center()
         )
         .Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
-        .GridRowSpan(3).HFill().VFill().ZIndex(100);
+        .GridRowSpan(3)
+        .HFill()
+        .VFill()
+        .ZIndex(100);
     }
 
     private void StartTimer()
@@ -884,6 +1080,7 @@ partial class GamePage : Component<GamePageState, GameProps>
             State.Timer.Stop();
             State.Timer.Dispose();
         }
+        
         State.TimeLeftSeconds = 120;
         State.TimerRunning = true;
         State.TimerFlash = false;
@@ -897,6 +1094,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                     State.Timer?.Stop();
                     return;
                 }
+                
                 SetState(st =>
                 {
                     st.TimeLeftSeconds--;
@@ -906,6 +1104,15 @@ partial class GamePage : Component<GamePageState, GameProps>
                         st.GameOver = true;
                         st.TimerRunning = false;
                         st.Timer?.Stop();
+                        
+                        // Add a delay before showing the game over UI for time-out scenario
+                        Task.Delay(500).ContinueWith(_ =>
+                        {
+                            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
+                            {
+                                SetState(finalState => finalState.ShowGameOverUI = true);
+                            });
+                        });
                     }
                     else if (st.TimeLeftSeconds <= 10)
                     {
@@ -914,6 +1121,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                 });
             });
         };
+        
         State.Timer.Start();
     }
 
