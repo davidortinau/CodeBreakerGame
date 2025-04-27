@@ -126,8 +126,6 @@ partial class GamePage : Component<GamePageState, GameProps>
     private VisualNode RenderPausedOverlay()
     {
         return Grid(
-            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.92f)))
-                .HFill().VFill(),
             VStack(
                 Label("PAUSED")
                     .FontFamily("monospace")
@@ -137,7 +135,8 @@ partial class GamePage : Component<GamePageState, GameProps>
                     .HCenter(),
                 BoxView().HeightRequest(24),
                 Button("Resume")
-                    .OnClicked(() => {
+                    .OnClicked(() =>
+                    {
                         SetState(s => s.ShowPaused = false);
                         MauiControls.Application.Current?.Dispatcher.Dispatch(() => ResumeTimer());
                     })
@@ -152,12 +151,14 @@ partial class GamePage : Component<GamePageState, GameProps>
             )
             .Padding(32)
             .Center()
-        ).GridRowSpan(2).HFill().VFill().ZIndex(150);
+        )
+        .Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.92f)))
+        .GridRowSpan(3).HFill().VFill().ZIndex(150);
     }
 
     public override VisualNode Render()
         => ContentPage("CODE BREAKER",
-            Grid(rows: "*,Auto",
+            Grid(rows: "Auto,*,Auto",
                 columns: "*",
                     // Timer display
                     RenderTimer(),
@@ -191,7 +192,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                 .TextColor(ApplicationTheme.GameGreen)
                 .HCenter()
                 .VCenter()
-        ).HFill().VFill().ZIndex(200).GridRowSpan(2);
+        ).HFill().VFill().ZIndex(200).GridRowSpan(3);
     }
 
     private VisualNode RenderHelpButton()
@@ -255,7 +256,8 @@ partial class GamePage : Component<GamePageState, GameProps>
         .HCenter()
         .VCenter()
         .RowSpacing(12)
-        .Margin(15);
+        .Margin(15)
+        .GridRow(1);
     }
 
     private VisualNode RenderGuessRow(int rowIndex, int guessIndex)
@@ -486,7 +488,7 @@ partial class GamePage : Component<GamePageState, GameProps>
             RenderEraseButton()
 
         )
-        .GridRow(1)
+        .GridRow(2)
         .VEnd()
         ;
     }
@@ -776,29 +778,13 @@ partial class GamePage : Component<GamePageState, GameProps>
     {
         return Grid(
             // Semi-transparent dark background
-            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
-                .HFill()
-                .VFill(),
-
             VStack(spacing: 30,
                 // Game result text with glowing effect
-                Border(
-                    Label(State.GameWon ? "YOU WIN!" : "GAME OVER").FontFamily("monospace")
+                Label(State.GameWon ? "YOU WIN!" : "GAME OVER").FontFamily("monospace")
                         .FontSize(36)
                         .FontAttributes(FontAttributes.Bold).TextColor(ApplicationTheme.White)
                         .HCenter()
-                )
-                .Background(new RadialGradientBrush(new GradientStopCollection
-                {
-                    new GradientStop(State.GameWon ?
-                        ApplicationTheme.Primary.WithLuminosity(0.6f) : // Darker green center for win
-                        ApplicationTheme.GameDarkRed,  // Darker red center for loss
-                        0.0f),
-                    new GradientStop(ApplicationTheme.Black.WithAlpha(0.0f), 1.0f) // Transparent outer edge
-                }))
-                .HeightRequest(120)
-                .WidthRequest(300)
-                .StrokeThickness(0),
+                ,
 
                 // Show secret code if game is lost
                 !State.GameWon ?
@@ -830,9 +816,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                         .FontSize(20)
                         .FontAttributes(FontAttributes.Bold)
                         .HeightRequest(60)
-                        .WidthRequest(120)
-                        .BorderWidth(4)
-                        .BorderColor(ApplicationTheme.Gray400),
+                        .WidthRequest(120),
                     Button("DIFFICULT")
                         .OnClicked(() => RestartGame(1))
                         .BackgroundColor(ApplicationTheme.GameRed)
@@ -842,14 +826,13 @@ partial class GamePage : Component<GamePageState, GameProps>
                         .FontAttributes(FontAttributes.Bold)
                         .HeightRequest(60)
                         .WidthRequest(160)
-                        .BorderWidth(4)
-                        .BorderColor(ApplicationTheme.Gray400)
                 )
                 .HCenter()
             )
             .Center()
         )
-        .GridRowSpan(2)
+        .Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
+        .GridRowSpan(3)
         .ZIndex(100)
         .HFill()
         .VFill();
@@ -858,8 +841,6 @@ partial class GamePage : Component<GamePageState, GameProps>
     private VisualNode RenderHelpOverlay()
     {
         return Grid(
-            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
-                .HFill().VFill(),
             VStack(
                 Label("AGENT INSTRUCTIONS")
                     .FontFamily("monospace")
@@ -875,7 +856,8 @@ partial class GamePage : Component<GamePageState, GameProps>
                     .HCenter(),
                 BoxView().HeightRequest(24),
                 Button("Close")
-                    .OnClicked(() => {
+                    .OnClicked(() =>
+                    {
                         SetState(s => s.ShowHelp = false);
                         MauiControls.Application.Current?.Dispatcher.Dispatch(() => ResumeTimer());
                     })
@@ -890,7 +872,9 @@ partial class GamePage : Component<GamePageState, GameProps>
             )
             .Padding(24)
             .Center()
-        ).GridRowSpan(2).HFill().VFill().ZIndex(100);
+        )
+        .Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
+        .GridRowSpan(3).HFill().VFill().ZIndex(100);
     }
 
     private void StartTimer()
