@@ -135,6 +135,12 @@ internal class GamePageState
     /// This property is used to add a delay before showing the game over UI.
     /// </summary>
     public bool ShowGameOverUI { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the list of colors that have been tried but are not in the puzzle.
+    /// Used in easy mode to track which color buttons should be disabled.
+    /// </summary>
+    public List<Color> DisabledColors { get; set; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GamePageState"/> class.
@@ -187,6 +193,12 @@ internal partial class GamePage : Component<GamePageState, GameProps>
 {
     protected override void OnPropsChanged()
     {
+        // Clear the disabled colors list when difficulty level is changed to difficult
+        if (Props.DifficultyLevel == 1)
+        {
+            SetState(s => s.DisabledColors.Clear());
+        }
+        
         base.OnPropsChanged();
     }
 
@@ -558,25 +570,39 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                 HStack(
                     spacing: 12,
                     Enumerable.Range(0, 4).Select(colorIndex =>
-                        // Create a layered effect for arcade button look
-                        Border(
+                    {
+                        // Check if this color should be disabled - only in easy mode
+                        bool colorIsDisabled = Props.DifficultyLevel == 0 && 
+                            State.DisabledColors.Any(c => ColorEquals(c, State.AvailableColors[colorIndex]));
+                        
+                        // Make absolutely sure buttons aren't disabled in difficult mode
+                        if (Props.DifficultyLevel != 0)
+                        {
+                            colorIsDisabled = false;
+                        }
+                        
+                        return Border(
                             Button() // The actual button with color
-                                .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
+                                .BackgroundColor(colorIsDisabled ? 
+                                    ApplicationTheme.Gray600 : // Use solid gray for disabled buttons 
+                                    State.AvailableColors[colorIndex].WithSaturation(1.25f)) 
                                 .HeightRequest(44)
                                 .WidthRequest(44)
                                 .CornerRadius(22)
                                 .BorderWidth(3) // Nice thick border for arcade style
-                                .BorderColor(State.AvailableColors[colorIndex])
+                                .BorderColor(colorIsDisabled ? 
+                                    ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
                                 .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
-                                .IsEnabled(!State.GameOver)
+                                .IsEnabled(!State.GameOver && !colorIsDisabled)
                         ) // Outer border - acts as button bezel
                             .StrokeThickness(3)
-                            .Stroke(State.AvailableColors[colorIndex])
+                            .Stroke(colorIsDisabled ? 
+                                ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
                             .StrokeShape(RoundRectangle().CornerRadius(32))
                             .Background(ApplicationTheme.OffBlack)
                             .HeightRequest(54)
-                            .WidthRequest(54)
-                    ).ToArray()
+                            .WidthRequest(54);
+                    }).ToArray()
                 )
                 .GridRow(0)
                 .HCenter(),
@@ -585,24 +611,39 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                 HStack(
                     spacing: 12,
                     Enumerable.Range(4, 3).Select(colorIndex => 
-                        Border(
+                    {
+                        // Check if this color should be disabled - only in easy mode
+                        bool colorIsDisabled = Props.DifficultyLevel == 0 && 
+                            State.DisabledColors.Any(c => ColorEquals(c, State.AvailableColors[colorIndex]));
+                        
+                        // Make absolutely sure buttons aren't disabled in difficult mode
+                        if (Props.DifficultyLevel != 0)
+                        {
+                            colorIsDisabled = false;
+                        }
+                        
+                        return Border(
                             Button()
-                                .BackgroundColor(State.AvailableColors[colorIndex].WithSaturation(1.25f))
+                                .BackgroundColor(colorIsDisabled ? 
+                                    ApplicationTheme.Gray600 : // Use solid gray for disabled buttons
+                                    State.AvailableColors[colorIndex].WithSaturation(1.25f)) 
                                 .HeightRequest(44)
                                 .WidthRequest(44)
                                 .CornerRadius(22)
                                 .BorderWidth(3)
-                                .BorderColor(State.AvailableColors[colorIndex])
+                                .BorderColor(colorIsDisabled ? 
+                                    ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
                                 .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
-                                .IsEnabled(!State.GameOver)
+                                .IsEnabled(!State.GameOver && !colorIsDisabled)
                         )
                         .StrokeThickness(3)
-                        .Stroke(State.AvailableColors[colorIndex])
+                        .Stroke(colorIsDisabled ? 
+                            ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
                         .StrokeShape(RoundRectangle().CornerRadius(32))
                         .Background(ApplicationTheme.OffBlack)
                         .HeightRequest(54)
-                        .WidthRequest(54)
-                    ).ToArray()
+                        .WidthRequest(54);
+                    }).ToArray()
                 )
                 .GridRow(1)
                 .HCenter()
@@ -797,6 +838,37 @@ internal partial class GamePage : Component<GamePageState, GameProps>
             s.AnimatingResultsIndex = -1; // Will be incremented to 0 in animation
             s.AnimatingGuessIndex = s.PreviousGuesses.Count - 1;
             s.IsRevealComplete = false;
+            
+            // In easy mode, identify colors that aren't in the puzzle at all
+            // In difficult mode, make sure disabled colors list is empty
+            if (Props.DifficultyLevel == 0) 
+            {
+                // For each color in the current guess
+                foreach (var color in guessToCheck.Where(c => c != null).Cast<Color>().Distinct())
+                {
+                    // Check if this color appears anywhere in the secret code
+                    bool colorIsInSecret = false;
+                    foreach (var secretColor in s.SecretCode)
+                    {
+                        if (ColorEquals(color, secretColor))
+                        {
+                            colorIsInSecret = true;
+                            break;
+                        }
+                    }
+                    
+                    // If color is not in secret code at all and not already in disabled list, add it
+                    if (!colorIsInSecret && !s.DisabledColors.Any(c => ColorEquals(c, color)))
+                    {
+                        s.DisabledColors.Add(color);
+                    }
+                }
+            }
+            else
+            {
+                // In difficult mode, ensure the disabled colors list is empty
+                s.DisabledColors.Clear();
+            }
 
             // Clear the current guess
             s.CurrentGuess = new List<Color?>();
@@ -914,6 +986,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
             s.GameOver = false;
             s.GameWon = false;
             s.ShowGameOverUI = false;
+            s.DisabledColors = new List<Color>();
 
             // Generate new secret code
             Random rnd = new();
@@ -938,6 +1011,12 @@ internal partial class GamePage : Component<GamePageState, GameProps>
             s.TimeLeftSeconds = 120;
             s.TimerRunning = false;
             s.TimerFlash = false;
+            
+            // Only allow disabled colors in easy mode
+            s.DisabledColors = new List<Color>();
+            
+            // Apply the selected difficulty
+            Props.DifficultyLevel = difficulty;
         });
         
         StartTimer();
@@ -1039,6 +1118,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                      "- Crack the secret color code before time runs out.\n" +
                      "- Each row is a guess. Tap colors to build your code, then tap the key to submit.\n" +
                      "- Green means a color is correct and in the right place. Orange means a color is correct but in the wrong place. Gray means it's not in the code.\n" +
+                     "- In Easy mode, colors not present in the code will be disabled after guessing.\n" +
                      "- You have limited attempts and only 2 minutes.\n" +
                      "- When the timer flashes red, time is almost up.\n" +
                      "- Choose your difficulty wisely, Agent.\n\n" +
