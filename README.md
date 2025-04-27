@@ -1,6 +1,6 @@
 # CodeBreaker: Retro Arcade Edition
 
-![CodeBreaker iOS](images/IMG_6C3EA454D3E4-1.jpeg)
+![CodeBreaker iOS](images/mobile-screens.png)
 
 ## 🕹️ TOP SECRET MISSION BRIEFING 🕹️
 
