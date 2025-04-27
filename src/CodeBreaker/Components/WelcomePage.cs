@@ -39,7 +39,7 @@ public partial class WelcomePage : Component
                         .HeightRequest(56)
                         .OnClicked(async () =>
                         {
-                            await Navigation.PushAsync<HomePage, GameProps>(false, _ =>
+                            await Navigation.PushAsync<GamePage, GameProps>(false, _ =>
                                 {
                                     _.DifficultyLevel = 0;
                                 });
@@ -53,7 +53,7 @@ public partial class WelcomePage : Component
                         .HeightRequest(56)
                         .OnClicked(async () =>
                         {
-                            await Navigation.PushAsync<HomePage, GameProps>(false, _ =>
+                            await Navigation.PushAsync<GamePage, GameProps>(false, _ =>
                                 {
                                     _.DifficultyLevel = 1;
                                 });

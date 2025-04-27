@@ -9,7 +9,7 @@ using CodeBreaker.Resources.Styles;
 
 namespace CodeBreaker.Components;
 
-class HomePageState
+class GamePageState
 {
     public List<Color> SecretCode { get; set; } = new();
     public List<List<Color?>> PreviousGuesses { get; set; } = new();
@@ -37,7 +37,20 @@ class HomePageState
         ApplicationTheme.White,
     };
 
-    public HomePageState()
+    // Timer properties
+    public int TimeLeftSeconds { get; set; } = 120;
+    public bool TimerRunning { get; set; } = false;
+    public bool TimerFlash { get; set; } = false;
+    public System.Timers.Timer? Timer { get; set; }
+
+    // Help overlay property
+    public bool ShowHelp { get; set; } = false;
+
+    // Countdown overlay properties
+    public bool ShowCountdown { get; set; } = true;
+    public int CountdownValue { get; set; } = 3;
+
+    public GamePageState()
     {
         GenerateNewCode();
     }
@@ -65,7 +78,7 @@ public enum GuessResult
     Correct         // Right color, right position
 }
 
-partial class HomePage : Component<HomePageState, GameProps>
+partial class GamePage : Component<GamePageState, GameProps>
 {
 
     protected override void OnPropsChanged()
@@ -74,26 +87,111 @@ partial class HomePage : Component<HomePageState, GameProps>
         base.OnPropsChanged();
     }
 
+    protected override void OnMounted()
+    {
+        SetState(s => {
+            s.ShowCountdown = true;
+            s.CountdownValue = 3;
+        });
+        StartCountdown();
+        base.OnMounted();
+    }
+
+    private void StartCountdown()
+    {
+        var countdownTimer = new System.Timers.Timer(1000);
+        countdownTimer.Elapsed += (s, e) =>
+        {
+            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
+            {
+                if (State.CountdownValue > 1)
+                {
+                    SetState(st => st.CountdownValue--);
+                }
+                else
+                {
+                    countdownTimer.Stop();
+                    countdownTimer.Dispose();
+                    SetState(st => st.ShowCountdown = false);
+                    StartTimer();
+                }
+            });
+        };
+        countdownTimer.Start();
+    }
+
     public override VisualNode Render()
         => ContentPage("CODE BREAKER",
             Grid(rows: "*,Auto",
                 columns: "*",
+                    // Timer display
+                    RenderTimer(),
+                    // Help button
+                    RenderHelpButton(),
                     // Main game content
-                    // VStack(spacing: 15,
-                    // Game board with guess rows
                     RenderGameBoard(),
-
                     // Controls section
                     RenderControls(),
-                // )
-                // .Padding(15),
-
-                // Game over overlay (conditionally shown)
-                State.GameOver ? RenderGameOverOverlay() : null
+                    // Game over overlay (conditionally shown)
+                    State.GameOver ? RenderGameOverOverlay() : null,
+                    // Help overlay (conditionally shown)
+                    State.ShowHelp ? RenderHelpOverlay() : null,
+                    // Countdown overlay (conditionally shown)
+                    State.ShowCountdown ? RenderCountdownOverlay() : null
             )
         )
         .HasNavigationBar(false)
         .Background(ApplicationTheme.OffBlack); // Dark background
+
+    private VisualNode RenderCountdownOverlay()
+    {
+        return Grid(
+            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f))).HFill().VFill(),
+            Label(State.CountdownValue > 0 ? State.CountdownValue.ToString() : "GO!")
+                .FontFamily("monospace")
+                .FontSize(96)
+                .FontAttributes(FontAttributes.Bold)
+                .TextColor(ApplicationTheme.GameGreen)
+                .HCenter()
+                .VCenter()
+        ).HFill().VFill().ZIndex(200);
+    }
+
+    private VisualNode RenderHelpButton()
+    {
+        return ImageButton()
+            .Source(ApplicationTheme.IconInfo)
+            .HeightRequest(36)
+            .WidthRequest(36)
+            .BackgroundColor(Colors.Transparent)
+            .HEnd()
+            .VStart()
+            .Margin(0, 12, 18, 0)
+            .ZIndex(10)
+            .OnClicked(() => {
+                SetState(s => s.ShowHelp = true);
+                PauseTimer();
+            });
+    }
+
+    private VisualNode RenderTimer()
+    {
+        var isLast10 = State.TimeLeftSeconds <= 10;
+        var min = State.TimeLeftSeconds / 60;
+        var sec = State.TimeLeftSeconds % 60;
+        var color = isLast10 ? ApplicationTheme.GameRed : ApplicationTheme.Gray100;
+        var fontWeight = FontAttributes.Bold;
+        var opacity = isLast10 && State.TimerFlash ? 0.3 : 1.0;
+        return Label($"{min:00}:{sec:00}")
+            .FontSize(28)
+            .FontAttributes(fontWeight)
+            .TextColor(color)
+            .Opacity(opacity)
+            .Margin(18, 12, 0, 0)
+            .HStart()
+            .VStart()
+            .ZIndex(10);
+    }
 
     private VisualNode RenderGameBoard()
     {
@@ -484,6 +582,12 @@ partial class HomePage : Component<HomePageState, GameProps>
 
         // Start animation immediately - no delay needed since we're using a timer
         MauiControls.Application.Current?.Dispatcher.Dispatch(AnimateNextIndicator);
+
+        // If the guess is correct, stop the timer
+        if (State.SecretCode.SequenceEqual(State.CurrentGuess))
+        {
+            StopTimer();
+        }
     }
 
     private void AnimateNextIndicator()
@@ -523,6 +627,13 @@ partial class HomePage : Component<HomePageState, GameProps>
                         s.IsRevealComplete = true;
                         s.GameWon = isWon;
                         s.GameOver = isWon || s.PreviousGuesses.Count >= s.MaxAttempts;
+
+                        // If game is won, stop the timer
+                        if (s.GameWon)
+                        {
+                            StopTimer();
+                        }
+                        // If game is over (time out), timer is already stopped in timer logic
 
                         // Schedule a final update to reset animation state after a short delay
                         Task.Delay(250).ContinueWith(_ =>
@@ -579,7 +690,6 @@ partial class HomePage : Component<HomePageState, GameProps>
 
     private void RestartGame(int difficulty)
     {
-        Props.DifficultyLevel = difficulty; // Set the difficulty level in props
         SetState(s =>
         {
             s.GameOver = false;
@@ -587,11 +697,11 @@ partial class HomePage : Component<HomePageState, GameProps>
             s.PreviousGuesses = new List<List<Color?>>();
             s.GuessResults = new List<List<GuessResult>>();
             s.CurrentGuess = new List<Color?>();
-            // s.MaxAttempts and s.MaxCodeLength are readonly, so we can't change them here
-            // Instead, use difficulty to control behavior elsewhere if needed
-            // Store difficulty in Props if you want to persist it
+            s.TimeLeftSeconds = 120;
+            s.TimerRunning = false;
+            s.TimerFlash = false;
         });
-        // Optionally, you could trigger a navigation or re-mount with new props if you want to fully reset difficulty
+        StartTimer();
     }
 
     private VisualNode RenderGameOverOverlay()
@@ -673,5 +783,103 @@ partial class HomePage : Component<HomePageState, GameProps>
         )
         .HFill()
         .VFill();
+    }
+
+    private VisualNode RenderHelpOverlay()
+    {
+        return Grid(
+            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.85f)))
+                .HFill().VFill(),
+            VStack(
+                Label("AGENT INSTRUCTIONS")
+                    .FontFamily("monospace")
+                    .FontSize(28)
+                    .FontAttributes(FontAttributes.Bold)
+                    .TextColor(ApplicationTheme.GameGreen)
+                    .HCenter(),
+                BoxView().HeightRequest(12),
+                Label("Your mission, should you choose to accept it:\n\n- Crack the secret color code before time runs out.\n- Each row is a guess. Tap colors to build your code, then tap the key to submit.\n- Green means a color is correct and in the right place. Orange means a color is correct but in the wrong place. Gray means it's not in the code.\n- You have limited attempts and only 2 minutes.\n- When the timer flashes red, time is almost up.\n- Choose your difficulty wisely, Agent.\n\nGood luck. This message will self-destruct in 2 minutes.")
+                    .FontFamily("monospace")
+                    .FontSize(18)
+                    .TextColor(ApplicationTheme.Gray100)
+                    .HCenter(),
+                BoxView().HeightRequest(24),
+                Button("Close")
+                    .OnClicked(() => {
+                        SetState(s => s.ShowHelp = false);
+                        MauiControls.Application.Current?.Dispatcher.Dispatch(() => ResumeTimer());
+                    })
+                    .BackgroundColor(ApplicationTheme.GameRed)
+                    .TextColor(ApplicationTheme.White)
+                    .FontFamily("monospace")
+                    .FontSize(18)
+                    .FontAttributes(FontAttributes.Bold)
+                    .HeightRequest(48)
+                    .WidthRequest(120)
+                    .HCenter()
+            )
+            .Padding(24)
+            .Center()
+        ).HFill().VFill().ZIndex(100);
+    }
+
+    private void StartTimer()
+    {
+        if (State.Timer != null)
+        {
+            State.Timer.Stop();
+            State.Timer.Dispose();
+        }
+        State.TimeLeftSeconds = 120;
+        State.TimerRunning = true;
+        State.TimerFlash = false;
+        State.Timer = new System.Timers.Timer(1000);
+        State.Timer.Elapsed += (s, e) =>
+        {
+            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
+            {
+                if (!State.TimerRunning || State.GameOver || State.GameWon)
+                {
+                    State.Timer?.Stop();
+                    return;
+                }
+                SetState(st =>
+                {
+                    st.TimeLeftSeconds--;
+                    if (st.TimeLeftSeconds <= 0)
+                    {
+                        st.TimeLeftSeconds = 0;
+                        st.GameOver = true;
+                        st.TimerRunning = false;
+                        st.Timer?.Stop();
+                    }
+                    else if (st.TimeLeftSeconds <= 10)
+                    {
+                        st.TimerFlash = !st.TimerFlash;
+                    }
+                });
+            });
+        };
+        State.Timer.Start();
+    }
+
+    private void StopTimer()
+    {
+        State.TimerRunning = false;
+        State.Timer?.Stop();
+    }
+
+    private void PauseTimer()
+    {
+        State.TimerRunning = false;
+    }
+
+    private void ResumeTimer()
+    {
+        if (!State.GameOver && !State.GameWon && State.TimeLeftSeconds > 0)
+        { 
+            State.TimerRunning = true; 
+            State.Timer?.Start();         
+        }
     }
 }

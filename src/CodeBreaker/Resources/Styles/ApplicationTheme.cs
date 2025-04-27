@@ -68,6 +68,22 @@ class ApplicationTheme : Theme
         Color = White
     };
 
+    public static ImageSource IconInfo = new FontImageSource
+    {
+        FontFamily = Fonts.FluentUI.FontFamily,
+        Glyph = Fonts.FluentUI.info_48_regular,
+        Color = White
+    };
+
+    public static ImageSource IconPause = new FontImageSource
+    {
+        FontFamily = Fonts.FluentUI.FontFamily,
+        Glyph = Fonts.FluentUI.pause_48_regular,
+        Color = White
+    };
+
+    
+
     
 
     protected override void OnApply()
