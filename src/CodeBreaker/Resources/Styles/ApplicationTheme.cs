@@ -78,13 +78,9 @@ class ApplicationTheme : Theme
     public static ImageSource IconPause = new FontImageSource
     {
         FontFamily = Fonts.FluentUI.FontFamily,
-        Glyph = Fonts.FluentUI.pause_48_regular,
+        Glyph = Fonts.FluentUI.pause_circle_24_regular,
         Color = White
     };
-
-    
-
-    
 
     protected override void OnApply()
     {

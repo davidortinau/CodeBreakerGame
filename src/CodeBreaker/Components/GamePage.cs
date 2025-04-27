@@ -50,6 +50,9 @@ class GamePageState
     public bool ShowCountdown { get; set; } = true;
     public int CountdownValue { get; set; } = 3;
 
+    // Paused overlay property
+    public bool ShowPaused { get; set; } = false;
+
     public GamePageState()
     {
         GenerateNewCode();
@@ -120,6 +123,38 @@ partial class GamePage : Component<GamePageState, GameProps>
         countdownTimer.Start();
     }
 
+    private VisualNode RenderPausedOverlay()
+    {
+        return Grid(
+            Border().Background(new SolidColorBrush(ApplicationTheme.Black.WithAlpha(0.92f)))
+                .HFill().VFill(),
+            VStack(
+                Label("PAUSED")
+                    .FontFamily("monospace")
+                    .FontSize(40)
+                    .FontAttributes(FontAttributes.Bold)
+                    .TextColor(ApplicationTheme.Gray100)
+                    .HCenter(),
+                BoxView().HeightRequest(24),
+                Button("Resume")
+                    .OnClicked(() => {
+                        SetState(s => s.ShowPaused = false);
+                        MauiControls.Application.Current?.Dispatcher.Dispatch(() => ResumeTimer());
+                    })
+                    .BackgroundColor(ApplicationTheme.GameGreen)
+                    .TextColor(ApplicationTheme.White)
+                    .FontFamily("monospace")
+                    .FontSize(20)
+                    .FontAttributes(FontAttributes.Bold)
+                    .HeightRequest(56)
+                    .WidthRequest(160)
+                    .HCenter()
+            )
+            .Padding(32)
+            .Center()
+        ).GridRowSpan(2).HFill().VFill().ZIndex(150);
+    }
+
     public override VisualNode Render()
         => ContentPage("CODE BREAKER",
             Grid(rows: "*,Auto",
@@ -137,7 +172,9 @@ partial class GamePage : Component<GamePageState, GameProps>
                     // Help overlay (conditionally shown)
                     State.ShowHelp ? RenderHelpOverlay() : null,
                     // Countdown overlay (conditionally shown)
-                    State.ShowCountdown ? RenderCountdownOverlay() : null
+                    State.ShowCountdown ? RenderCountdownOverlay() : null,
+                    // Paused overlay (conditionally shown)
+                    State.ShowPaused ? RenderPausedOverlay() : null
             )
         )
         .HasNavigationBar(false)
@@ -154,7 +191,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                 .TextColor(ApplicationTheme.GameGreen)
                 .HCenter()
                 .VCenter()
-        ).HFill().VFill().ZIndex(200);
+        ).HFill().VFill().ZIndex(200).GridRowSpan(2);
     }
 
     private VisualNode RenderHelpButton()
@@ -182,10 +219,23 @@ partial class GamePage : Component<GamePageState, GameProps>
         var color = isLast10 ? ApplicationTheme.GameRed : ApplicationTheme.Gray100;
         var fontWeight = FontAttributes.Bold;
         var opacity = isLast10 && State.TimerFlash ? 0.3 : 1.0;
-        return Label($"{min:00}:{sec:00}")
-            .FontSize(28)
-            .FontAttributes(fontWeight)
-            .TextColor(color)
+        return HStack(
+            Label($"{min:00}:{sec:00}")
+                .FontSize(28)
+                .FontAttributes(fontWeight)
+                .TextColor(color),
+            ImageButton()
+                .Source(ApplicationTheme.IconPause)
+                .HeightRequest(28)
+                .WidthRequest(28)
+                .BackgroundColor(Colors.Transparent)
+                .OnClicked(() =>
+                {
+                    SetState(s => s.ShowPaused = true);
+                    PauseTimer();
+                })
+        )
+            .Spacing(12)
             .Opacity(opacity)
             .Margin(18, 12, 0, 0)
             .HStart()
@@ -219,32 +269,6 @@ partial class GamePage : Component<GamePageState, GameProps>
             rows: new[] { new RowDefinition(GridLength.Star) },
             columns: new[] { new ColumnDefinition(40), new ColumnDefinition(GridLength.Star), new ColumnDefinition(40) },
 
-            // Left side - Erase button (only for current row)
-            isCurrentRow ?
-                Border(
-                    ImageButton()
-                        .Source(ApplicationTheme.IconEraser)
-                        .Aspect(Aspect.AspectFit)
-                        .Padding(4)
-                        .OnClicked(EraseLastColor)
-                        .Background(ApplicationTheme.Gray900)
-                        .HeightRequest(36)
-                        .WidthRequest(36)
-                        .CornerRadius(18)
-                        .BorderWidth(3)
-                        .BorderColor(ApplicationTheme.Black)
-                )
-                .StrokeThickness(3)
-                .Stroke(ApplicationTheme.Gray600)
-                .StrokeShape(RoundRectangle().CornerRadius(20))
-                .Background(ApplicationTheme.OffBlack)
-                .HeightRequest(40)
-                .WidthRequest(40)
-                .Margin(0, 0, 24, 0)
-                .GridColumn(0)
-                .VStart()
-                : null,
-
             // Center - Pegs
             HStack(spacing: 12,
                 Enumerable.Range(0, State.MaxCodeLength).Select(columnIndex =>
@@ -265,52 +289,15 @@ partial class GamePage : Component<GamePageState, GameProps>
             )
             .GridColumn(1),
 
-            // Right side - Key button or circular indicator
-            isCurrentRow ?
-                Border(
-                    ImageButton()
-                        .Source(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                            ApplicationTheme.IconKey : ApplicationTheme.IconKeyDisabled)
-                        .Aspect(Aspect.AspectFit)
-                        .Padding(2)
-                        .HeightRequest(36)
-                        .WidthRequest(36)
-                        .CornerRadius(18)
-                        .BorderWidth(3)
-                        .BorderColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                            ApplicationTheme.Primary : ApplicationTheme.Black)
-                        .OnClicked(SubmitGuess)
-                        .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
-                        .BackgroundColor(ApplicationTheme.Gray900)
-                )
-                    .StrokeThickness(3)
-                    .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                        ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Gray600)
-                    .StrokeShape(RoundRectangle().CornerRadius(20))
-                    .Background(ApplicationTheme.OffBlack)
+            // Right side - circular indicator  
+            !isCurrentRow && isPastRow && Props.DifficultyLevel == 1 ?
+                Border(RenderCircularIndicator(guessIndex))
                     .HeightRequest(40)
                     .WidthRequest(40)
                     .Margin(24, 0, 0, 0)
-                    .Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
-                        Shadow()
-                            .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
-                            .Offset(0, 0)
-                            .Radius(8) :
-                        Shadow()
-                            .Brush(new SolidColorBrush(Colors.Transparent))
-                            .Radius(0))
                     .GridColumn(2)
                     .VStart()
-                    .WithAnimation(duration: 800, easing: Easing.CubicInOut)
-                : // For non-current rows and medium difficulty, show circular indicator if there are results                
-                (!isCurrentRow && isPastRow && Props.DifficultyLevel == 1 ?
-                    Border(RenderCircularIndicator(guessIndex))
-                        .HeightRequest(40)
-                        .WidthRequest(40)
-                        .Margin(24, 0, 0, 0)
-                        .GridColumn(2)
-                        .VStart()
-                    : null)
+                : null
         )
         .GridRow(rowIndex);
     }
@@ -481,6 +468,7 @@ partial class GamePage : Component<GamePageState, GameProps>
                             .HeightRequest(54)
                             .WidthRequest(54)
                     ).ToArray()
+                    
                 )
                 .GridRow(1)
                 .HCenter()
@@ -492,13 +480,93 @@ partial class GamePage : Component<GamePageState, GameProps>
                 .GridRow(0)
                 .BackgroundColor(Colors.Black)
                 .VFill()
-                .HFill()
+                .HFill(),
+
+            RenderKeyButton(),
+            RenderEraseButton()
 
         )
         .GridRow(1)
         .VEnd()
         ;
     }
+
+    private VisualNode RenderEraseButton() =>
+        VStack(
+            Border(
+
+                Button()
+                    // .Source(ApplicationTheme.IconEraser)
+                    // .Aspect(Aspect.AspectFit)
+                    .Padding(4)
+                    .OnClicked(EraseLastColor)
+                    .Background(ApplicationTheme.Gray900)
+                    .HeightRequest(44)
+                    .WidthRequest(44)
+                    .CornerRadius(22)
+                    .BorderWidth(3)
+                    .BorderColor(ApplicationTheme.Black).Center()
+            )
+
+            .StrokeThickness(3)
+            .Stroke(ApplicationTheme.Gray600)
+            .StrokeShape(RoundRectangle().CornerRadius(32))
+            .Background(ApplicationTheme.OffBlack)
+            .HeightRequest(54)
+            .WidthRequest(54),
+            Label("Erase").Center().TextColor(ApplicationTheme.Gray100).FontSize(12).FontAttributes(FontAttributes.Bold).FontFamily("monospace")
+        )
+            .Spacing(8)
+            .Margin(24)
+            .GridRow(1)
+            .HStart()
+            .VEnd();
+
+
+    private VisualNode RenderKeyButton() =>
+        VStack(
+            Border(
+                Button()
+                    // .Source(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                    //     ApplicationTheme.IconKey : ApplicationTheme.IconKeyDisabled)
+                    // .Aspect(Aspect.AspectFit)
+                    .Padding(2)
+                    .HeightRequest(44)
+                    .WidthRequest(44)
+                    .CornerRadius(22)
+                    .BorderWidth(3)
+                    .BorderColor(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                        ApplicationTheme.Primary : ApplicationTheme.Black)
+                    .OnClicked(SubmitGuess)
+                    .IsEnabled(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver)
+                    .BackgroundColor(ApplicationTheme.Gray900)
+            )
+                .StrokeThickness(3)
+                .Stroke(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                    ApplicationTheme.White.WithAlpha(0.7f) : ApplicationTheme.Gray600)
+                .StrokeShape(RoundRectangle().CornerRadius(32))
+                .Background(ApplicationTheme.OffBlack)
+                .HeightRequest(54)
+                .WidthRequest(54)
+
+                .Shadow(State.CurrentGuess.Count == State.MaxCodeLength && !State.GameOver ?
+                    Shadow()
+                        .Brush(new SolidColorBrush(ApplicationTheme.White.WithAlpha(0.8f)))
+                        .Offset(0, 0)
+                        .Radius(8) :
+                    Shadow()
+                        .Brush(new SolidColorBrush(Colors.Transparent))
+                        .Radius(0))
+                .WithAnimation(duration: 800, easing: Easing.CubicInOut),
+            Label("Guess").Center().TextColor(ApplicationTheme.Gray100).FontSize(12).FontAttributes(FontAttributes.Bold).FontFamily("monospace")
+        ).Spacing(8)
+
+            .VEnd()
+            .HEnd()
+            .Margin(24)
+            .GridRow(1)
+            ;
+    
 
     private void AddColorToCurrent(Color color)
     {
@@ -781,6 +849,8 @@ partial class GamePage : Component<GamePageState, GameProps>
             )
             .Center()
         )
+        .GridRowSpan(2)
+        .ZIndex(100)
         .HFill()
         .VFill();
     }
@@ -820,7 +890,7 @@ partial class GamePage : Component<GamePageState, GameProps>
             )
             .Padding(24)
             .Center()
-        ).HFill().VFill().ZIndex(100);
+        ).GridRowSpan(2).HFill().VFill().ZIndex(100);
     }
 
     private void StartTimer()
