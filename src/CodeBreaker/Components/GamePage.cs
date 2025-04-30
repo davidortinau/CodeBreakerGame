@@ -70,21 +70,6 @@ internal class GamePageState
     /// </summary>
     public bool IsRevealComplete { get; set; }
 
-    /// <summary>
-    /// Gets the list of available colors for the game.
-    /// </summary>
-    public List<Color> AvailableColors { get; } = new()
-    {
-        // Expanded Atari 2600 palette colors
-        ApplicationTheme.GameRed,
-        ApplicationTheme.GameGreen,
-        ApplicationTheme.GameBlue,
-        ApplicationTheme.GameYellow,
-        ApplicationTheme.Magenta,
-        ApplicationTheme.GameCyan,
-        ApplicationTheme.White,
-    };
-
     // Timer properties
     /// <summary>
     /// Gets or sets the number of seconds remaining in the game.
@@ -100,11 +85,6 @@ internal class GamePageState
     /// Gets or sets a value indicating whether the timer should flash.
     /// </summary>
     public bool TimerFlash { get; set; }
-
-    /// <summary>
-    /// Gets or sets the timer used for the game countdown.
-    /// </summary>
-    public System.Timers.Timer? Timer { get; set; }
 
     // Help overlay property
     /// <summary>
@@ -140,29 +120,7 @@ internal class GamePageState
     /// Gets or sets the list of colors that have been tried but are not in the puzzle.
     /// Used in easy mode to track which color buttons should be disabled.
     /// </summary>
-    public List<Color> DisabledColors { get; set; } = new();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GamePageState"/> class.
-    /// </summary>
-    public GamePageState()
-    {
-        GenerateNewCode();
-    }
-
-    private void GenerateNewCode()
-    {
-        Random rnd = new();
-        SecretCode = new List<Color>();
-
-        // Generate secret code using available colors
-        // Colors can repeat in the secret code
-        for (int i = 0; i < MaxCodeLength; i++)
-        {
-            int colorIndex = rnd.Next(0, AvailableColors.Count);
-            SecretCode.Add(AvailableColors[colorIndex]);
-        }
-    }
+    public List<Color> DisabledColors { get; set; } = [];
 }
 
 /// <summary>
@@ -191,6 +149,22 @@ public enum GuessResult
 /// </summary>
 internal partial class GamePage : Component<GamePageState, GameProps>
 {
+
+    /// <summary>
+    /// Gets the list of available colors for the game.
+    /// </summary>
+    static readonly List<Color> _availableColors =
+    [
+        // Expanded Atari 2600 palette colors
+        ApplicationTheme.GameRed,
+        ApplicationTheme.GameGreen,
+        ApplicationTheme.GameBlue,
+        ApplicationTheme.GameYellow,
+        ApplicationTheme.Magenta,
+        ApplicationTheme.GameCyan,
+        ApplicationTheme.White,
+    ];
+
     protected override void OnPropsChanged()
     {
         // Clear the disabled colors list when difficulty level is changed to difficult
@@ -204,38 +178,20 @@ internal partial class GamePage : Component<GamePageState, GameProps>
 
     protected override void OnMounted()
     {
-        SetState(s => 
-        {
-            s.ShowCountdown = true;
-            s.CountdownValue = 3;
-        });
-        
-        StartCountdown();
-        base.OnMounted();
-    }
+        State.ShowCountdown = true;
+        State.CountdownValue = 3;
 
-    private void StartCountdown()
-    {
-        var countdownTimer = new System.Timers.Timer(1000);
-        countdownTimer.Elapsed += (s, e) =>
+        State.SecretCode = [];
+
+        // Generate secret code using available colors
+        // Colors can repeat in the secret code
+        for (int i = 0; i < State.MaxCodeLength; i++)
         {
-            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
-            {
-                if (State.CountdownValue > 1)
-                {
-                    SetState(st => st.CountdownValue--);
-                }
-                else
-                {
-                    countdownTimer.Stop();
-                    countdownTimer.Dispose();
-                    SetState(st => st.ShowCountdown = false);
-                    StartTimer();
-                }
-            });
-        };
-        
-        countdownTimer.Start();
+            int colorIndex = Random.Shared.Next(0, _availableColors.Count);
+            State.SecretCode.Add(_availableColors[colorIndex]);
+        }
+
+        base.OnMounted();
     }
 
     private VisualNode RenderPausedOverlay()
@@ -253,7 +209,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                     .OnClicked(() =>
                     {
                         SetState(s => s.ShowPaused = false);
-                        MauiControls.Application.Current?.Dispatcher.Dispatch(() => ResumeTimer());
+                        ResumeTimer();
                     })
                     .BackgroundColor(ApplicationTheme.GameGreen)
                     .TextColor(ApplicationTheme.White)
@@ -362,7 +318,56 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                 {
                     SetState(s => s.ShowPaused = true);
                     PauseTimer();
-                })
+                }),
+            //Countdown timer
+            Timer()
+                .IsEnabled(State.ShowCountdown)
+                .Interval(1000)
+                .OnTick(() => 
+                {
+                    if (State.CountdownValue > 1)
+                    {
+                        SetState(st => st.CountdownValue--);
+                    }
+                    else
+                    {
+                        SetState(st => st.ShowCountdown = false);
+                        StartTimer();
+                    }
+                }),
+            // Main game timer
+            Timer()
+                .IsEnabled(State.TimerRunning)
+                .Interval(1000)
+                .OnTick(() => SetState(s =>
+                {
+                    if (!s.TimerRunning || s.GameOver || s.GameWon)
+                    {
+                        s.TimerRunning = false;
+                        return;
+                    }
+                    
+                    s.TimeLeftSeconds--;
+                    if (s.TimeLeftSeconds <= 0)
+                    {
+                        s.TimeLeftSeconds = 0;
+                        s.GameOver = true;
+                        s.TimerRunning = false;                        
+
+                        // Add a delay before showing the game over UI for time-out scenario
+                        Task.Delay(500).ContinueWith(_ =>
+                        {
+                            Application.Current?.Dispatcher.Dispatch(() =>
+                            {
+                                SetState(finalState => finalState.ShowGameOverUI = true);
+                            });
+                        });
+                    }
+                    else if (s.TimeLeftSeconds <= 10)
+                    {
+                        s.TimerFlash = true;
+                    }
+                }))
         )
         .Spacing(12)
         .Opacity(opacity)
@@ -573,7 +578,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                     {
                         // Check if this color should be disabled - only in easy mode
                         bool colorIsDisabled = Props.DifficultyLevel == 0 && 
-                            State.DisabledColors.Any(c => ColorEquals(c, State.AvailableColors[colorIndex]));
+                            State.DisabledColors.Any(c => ColorEquals(c, _availableColors[colorIndex]));
                         
                         // Make absolutely sure buttons aren't disabled in difficult mode
                         if (Props.DifficultyLevel != 0)
@@ -585,19 +590,19 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                             Button() // The actual button with color
                                 .BackgroundColor(colorIsDisabled ? 
                                     ApplicationTheme.Gray600 : // Use solid gray for disabled buttons 
-                                    State.AvailableColors[colorIndex].WithSaturation(1.25f)) 
+                                    _availableColors[colorIndex].WithSaturation(1.25f)) 
                                 .HeightRequest(44)
                                 .WidthRequest(44)
                                 .CornerRadius(22)
                                 .BorderWidth(3) // Nice thick border for arcade style
                                 .BorderColor(colorIsDisabled ? 
-                                    ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
-                                .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
+                                    ApplicationTheme.Gray400 : _availableColors[colorIndex])
+                                .OnClicked(() => AddColorToCurrent(_availableColors[colorIndex]))
                                 .IsEnabled(!State.GameOver && !colorIsDisabled)
                         ) // Outer border - acts as button bezel
                             .StrokeThickness(3)
                             .Stroke(colorIsDisabled ? 
-                                ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
+                                ApplicationTheme.Gray400 : _availableColors[colorIndex])
                             .StrokeShape(RoundRectangle().CornerRadius(32))
                             .Background(ApplicationTheme.OffBlack)
                             .HeightRequest(54)
@@ -614,7 +619,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                     {
                         // Check if this color should be disabled - only in easy mode
                         bool colorIsDisabled = Props.DifficultyLevel == 0 && 
-                            State.DisabledColors.Any(c => ColorEquals(c, State.AvailableColors[colorIndex]));
+                            State.DisabledColors.Any(c => ColorEquals(c, _availableColors[colorIndex]));
                         
                         // Make absolutely sure buttons aren't disabled in difficult mode
                         if (Props.DifficultyLevel != 0)
@@ -626,19 +631,19 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                             Button()
                                 .BackgroundColor(colorIsDisabled ? 
                                     ApplicationTheme.Gray600 : // Use solid gray for disabled buttons
-                                    State.AvailableColors[colorIndex].WithSaturation(1.25f)) 
+                                    _availableColors[colorIndex].WithSaturation(1.25f)) 
                                 .HeightRequest(44)
                                 .WidthRequest(44)
                                 .CornerRadius(22)
                                 .BorderWidth(3)
                                 .BorderColor(colorIsDisabled ? 
-                                    ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
-                                .OnClicked(() => AddColorToCurrent(State.AvailableColors[colorIndex]))
+                                    ApplicationTheme.Gray400 : _availableColors[colorIndex])
+                                .OnClicked(() => AddColorToCurrent(_availableColors[colorIndex]))
                                 .IsEnabled(!State.GameOver && !colorIsDisabled)
                         )
                         .StrokeThickness(3)
                         .Stroke(colorIsDisabled ? 
-                            ApplicationTheme.Gray400 : State.AvailableColors[colorIndex])
+                            ApplicationTheme.Gray400 : _availableColors[colorIndex])
                         .StrokeShape(RoundRectangle().CornerRadius(32))
                         .Background(ApplicationTheme.OffBlack)
                         .HeightRequest(54)
@@ -992,8 +997,8 @@ internal partial class GamePage : Component<GamePageState, GameProps>
             Random rnd = new();
             for (int i = 0; i < s.MaxCodeLength; i++)
             {
-                int colorIndex = rnd.Next(0, s.AvailableColors.Count);
-                s.SecretCode.Add(s.AvailableColors[colorIndex]);
+                int colorIndex = Random.Shared.Next(0, _availableColors.Count);
+                s.SecretCode.Add(_availableColors[colorIndex]);
             }
         });
     }
@@ -1132,7 +1137,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                     .OnClicked(() =>
                     {
                         SetState(s => s.ShowHelp = false);
-                        MauiControls.Application.Current?.Dispatcher.Dispatch(() => ResumeTimer());
+                        ResumeTimer();
                     })
                     .BackgroundColor(ApplicationTheme.GameRed)
                     .TextColor(ApplicationTheme.White)
@@ -1155,73 +1160,32 @@ internal partial class GamePage : Component<GamePageState, GameProps>
 
     private void StartTimer()
     {
-        if (State.Timer != null)
+        SetState(s =>
         {
-            State.Timer.Stop();
-            State.Timer.Dispose();
-        }
-        
-        State.TimeLeftSeconds = 120;
-        State.TimerRunning = true;
-        State.TimerFlash = false;
-        State.Timer = new System.Timers.Timer(1000);
-        State.Timer.Elapsed += (s, e) =>
-        {
-            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
-            {
-                if (!State.TimerRunning || State.GameOver || State.GameWon)
-                {
-                    State.Timer?.Stop();
-                    return;
-                }
-                
-                SetState(st =>
-                {
-                    st.TimeLeftSeconds--;
-                    if (st.TimeLeftSeconds <= 0)
-                    {
-                        st.TimeLeftSeconds = 0;
-                        st.GameOver = true;
-                        st.TimerRunning = false;
-                        st.Timer?.Stop();
-                        
-                        // Add a delay before showing the game over UI for time-out scenario
-                        Task.Delay(500).ContinueWith(_ =>
-                        {
-                            MauiControls.Application.Current?.Dispatcher.Dispatch(() =>
-                            {
-                                SetState(finalState => finalState.ShowGameOverUI = true);
-                            });
-                        });
-                    }
-                    else if (st.TimeLeftSeconds <= 10)
-                    {
-                        st.TimerFlash = !st.TimerFlash;
-                    }
-                });
-            });
-        };
-        
-        State.Timer.Start();
+            s.TimeLeftSeconds = 120;
+            s.TimerRunning = true;
+            s.TimerFlash = false;
+        });
     }
 
     private void StopTimer()
     {
-        State.TimerRunning = false;
-        State.Timer?.Stop();
+        SetState(s => s.TimerRunning = false);
     }
 
     private void PauseTimer()
     {
-        State.TimerRunning = false;
+        SetState(s => s.TimerRunning = false);
     }
 
     private void ResumeTimer()
     {
-        if (!State.GameOver && !State.GameWon && State.TimeLeftSeconds > 0)
-        { 
-            State.TimerRunning = true; 
-            State.Timer?.Start();         
-        }
+        SetState(s =>
+        {
+            if (!s.GameOver && !s.GameWon && s.TimeLeftSeconds > 0)
+            {
+                s.TimerRunning = true;
+            }
+        });
     }
 }
