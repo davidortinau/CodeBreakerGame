@@ -1160,8 +1160,9 @@ internal partial class GamePage : Component<GamePageState, GameProps>
             State.Timer.Stop();
             State.Timer.Dispose();
         }
-        
-        State.TimeLeftSeconds = 120;
+
+        // Set timer to 5 minutes (300 seconds) for difficult mode, 2 minutes (120 seconds) for easy mode
+        State.TimeLeftSeconds = Props.DifficultyLevel != 0 ? 300 : 120;
         State.TimerRunning = true;
         State.TimerFlash = false;
         State.Timer = new System.Timers.Timer(1000);
@@ -1174,7 +1175,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                     State.Timer?.Stop();
                     return;
                 }
-                
+
                 SetState(st =>
                 {
                     st.TimeLeftSeconds--;
@@ -1184,7 +1185,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                         st.GameOver = true;
                         st.TimerRunning = false;
                         st.Timer?.Stop();
-                        
+
                         // Add a delay before showing the game over UI for time-out scenario
                         Task.Delay(500).ContinueWith(_ =>
                         {
@@ -1201,7 +1202,7 @@ internal partial class GamePage : Component<GamePageState, GameProps>
                 });
             });
         };
-        
+
         State.Timer.Start();
     }
 
